@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -158,7 +159,45 @@ namespace WindowsGSM
         {
             HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
             source.AddHook(new HwndSourceHook(HandleMessages));
+            AppDomain.CurrentDomain.ProcessExit += domain_ProcessExit;
+
         }
+
+        static void domain_ProcessExit(object sender, EventArgs e)
+        {
+            /*
+            foreach (var server in MainWindow..Items.Cast<ServerTable>().ToList())
+            {
+                if (GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started)
+                {
+                    await GameServer_Stop(server);
+                }
+            }
+            */
+        }
+
+        protected override async void OnClosing(CancelEventArgs e)
+        {
+            // Don't overwrite cancellation for close
+            if (e.Cancel == false)
+            {
+                // #2409: don't close window if there is a dialog still open
+                var dialog = await this.GetCurrentDialogAsync<BaseMetroDialog>();
+                e.Cancel = dialog != null && (this.ShowDialogsOverTitleBar || !dialog.DialogSettings.OwnerCanCloseWithDialog);
+
+                //add a close confirmation
+                const string message = "Are you sure that you would like to Exit and stop all servers?";
+                const string caption = "Exit WindowsGSM";
+                var result = MessageBox.Show(message, caption,
+                                             MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.No)
+                    e.Cancel = true;
+            }
+
+            base.OnClosing(e);
+        }
+
 
         private IntPtr HandleMessages(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
