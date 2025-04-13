@@ -101,7 +101,7 @@ namespace WindowsGSM.DiscordBot
                 if (WindowsGSM.IsServerExist(serverId))
                 {
                     var serverStatus = WindowsGSM.GetServerStatus(serverId);
-                    if (serverStatus == MainWindow.ServerStatus.Started)
+                    if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting)
                     {
                         var started = await WindowsGSM.StopServerById(serverId, interaction.User.Id.ToString(),
                             interaction.User.Username);
@@ -165,7 +165,7 @@ namespace WindowsGSM.DiscordBot
                 if (WindowsGSM.IsServerExist(serverId))
                 {
                     var serverStatus = WindowsGSM.GetServerStatus(serverId);
-                    if (serverStatus == MainWindow.ServerStatus.Started)
+                    if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting )
                     {
                         var started = await WindowsGSM.RestartServerById(serverId, interaction.User.Id.ToString(),
                             interaction.User.Username);
