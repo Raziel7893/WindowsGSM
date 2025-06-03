@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>MahApps.Metro</id>
+    <version>3.0.0-alpha0513</version>
+    <title>MahApps.Metro</title>
+    <authors>Jan Karger, Bastian Schmidt, Dennis Daume, Brendan Forster, Alex Mitchell, Paul Jenkins, Jake Ginnivan</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>mahapps.metro.logo.png</icon>
+    <projectUrl>https://github.com/MahApps/MahApps.Metro</projectUrl>
+    <description>The goal of MahApps.Metro is to allow devs to quickly and easily cobble together a 'Modern' UI for their WPF apps (.Net 4.6.2 and later), with minimal effort.</description>
+    <releaseNotes>https://github.com/MahApps/MahApps.Metro/releases</releaseNotes>
+    <copyright>Copyright © 2024 .NET Foundation and Contributors. All rights reserved.</copyright>
+    <tags>WPF UI Metro Modern Material XAML Toolkit Library .NET OSS OpenSource</tags>
+    <repository type="git" url="https://github.com/MahApps/MahApps.Metro.git" branch="develop" commit="6341c4224767951e74eee9a6f0da50f1f181ce11" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.6.2">
+        <dependency id="ControlzEx" version="7.0.0-rc0118" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="6.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Xaml.Behaviors.Wpf" version="1.1.77" exclude="Build,Analyzers" />
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-windows7.0">
+        <dependency id="ControlzEx" version="7.0.0-rc0118" exclude="Build,Analyzers" />
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="6.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Xaml.Behaviors.Wpf" version="1.1.77" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net8.0-windows7.0">
+        <dependency id="ControlzEx" version="7.0.0-rc0118" exclude="Build,Analyzers" />
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Xaml.Behaviors.Wpf" version="1.1.77" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net6.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WPF" />
+      </group>
+      <group targetFramework="net8.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WPF" />
+      </group>
+      <group targetFramework=".NETFramework4.6.2" />
+    </frameworkReferences>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.ComponentModel.DataAnnotations" targetFramework=".NETFramework4.6.2" />
+      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework4.6.2" />
+    </frameworkAssemblies>
+  </metadata>
+</package>

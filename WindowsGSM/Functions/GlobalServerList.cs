@@ -10,7 +10,7 @@ namespace WindowsGSM.Functions
             if (WebRequest.Create("http://api.steampowered.com/ISteamApps/GetServersAtAddress/v0001?addr=" + publicIP + "&format=json") is HttpWebRequest webRequest)
             {
                 webRequest.Method = "GET";
-                webRequest.UserAgent = "Anything";
+                webRequest.Headers["User-Agent"] = "Anything";
                 webRequest.ServicePoint.Expect100Continue = false;
 
                 try

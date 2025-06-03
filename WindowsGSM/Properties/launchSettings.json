@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "WindowsGSM": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\Eigene Dateien\\_wichtige_dokumente\\IT\\_projekte\\_WindowsGSM\\WindowsGSM\\WindowsGSM\\bin\\Debug\\net8.0-windows8.0",
+      "nativeDebugging": true
+    }
+  }
+}

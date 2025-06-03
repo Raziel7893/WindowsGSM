@@ -15,7 +15,6 @@
         MinHeight="650"
         MinWidth="1000"
         Closing="Window_Closing"
-        GlowBrush="{DynamicResource MahApps.Brushes.Accent}"
         WindowStartupLocation="CenterScreen" Activated="Window_Activated">
    <mah:MetroWindow.RightWindowCommands>
       <mah:WindowCommands>
@@ -331,8 +330,8 @@
                         <Label x:Name="label_DiscordBotCommands" Content="" FontFamily="Consolas" DockPanel.Dock="Top"/>
                      </DockPanel>
                      <DockPanel DockPanel.Dock="Top" Margin="5,10,0,0">
-                        <mah:ToggleSwitch DockPanel.Dock="Left" VerticalAlignment="Center" x:Name="switch_DiscordBot" Header="Enable" Style="{StaticResource MahApps.Styles.ToggleSwitch}" Width="140" Toggled="Switch_DiscordBot_Toggled"/>
-                        <mah:ToggleSwitch DockPanel.Dock="Left" VerticalAlignment="Center" x:Name="MahAppSwitch_DiscordBotAutoStart" Header="Auto Start" Style="{StaticResource MahApps.Styles.ToggleSwitch}" Width="140" Toggled="Switch_DiscordBotAutoStart_Click"/>
+                        <mah:ToggleSwitch DockPanel.Dock="Left" VerticalAlignment="Center" x:Name="switch_DiscordBot" Header="Enable" Width="140" Toggled="Switch_DiscordBot_Toggled"/>
+                        <mah:ToggleSwitch DockPanel.Dock="Left" VerticalAlignment="Center" x:Name="MahAppSwitch_DiscordBotAutoStart" Header="Auto Start" Width="140" Toggled="Switch_DiscordBotAutoStart_Click"/>
                         <DockPanel DockPanel.Dock="Top" Margin="10,0,0,0">
                            <DockPanel DockPanel.Dock="Top">
                               <Label DockPanel.Dock="Left" Content="Bot Prefix"/>

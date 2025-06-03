@@ -48,38 +48,20 @@ namespace WindowsGSM.Functions
             return plugins;
         }
 
-        public async Task<PluginMetadata> LoadPlugin(string path, bool shouldAwait = true)
+        public async Task<PluginMetadata> LoadPlugin(string path, bool shouldAwait = false)
         {
             var pluginMetadata = new PluginMetadata
             {
                 FileName = Path.GetFileName(path)
             };
 
-            var options = new CompilerParameters();
-            options.ReferencedAssemblies.Add(Assembly.GetEntryAssembly().Location);
-            options.ReferencedAssemblies.Add("System.dll");
-            options.ReferencedAssemblies.Add("System.Core.dll");
-            options.ReferencedAssemblies.Add("System.Data.dll");
-            options.ReferencedAssemblies.Add(ServerPath.GetBin("Newtonsoft.Json.dll"));
-            options.GenerateInMemory = true;
+            var compiler = new RoslynCompiler($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}", File.ReadAllText(path), new[] { typeof(Console), typeof(Console) }, pluginMetadata);
+            var type = compiler.Compile();
 
-            var c = new Microsoft.CodeDom.Providers.DotNetCompilerPlatform.CSharpCodeProvider();
-            var cr = shouldAwait ? await Task.Run(() => c.CompileAssemblyFromSource(options, File.ReadAllText(path))) : c.CompileAssemblyFromSource(options, File.ReadAllText(path));
-            if (cr.Errors.HasErrors)
-            {
-                var sb = new StringBuilder();
-                foreach (CompilerError err in cr.Errors)
-                {
-                    sb.Append($"{err.ErrorText}\nLine: {err.Line} - Column: {err.Column}\n\n");
-                }
-                pluginMetadata.Error = sb.ToString();
-                Console.WriteLine(pluginMetadata.Error);
-                return pluginMetadata;
-            }
 
             try
             {
-                pluginMetadata.Type = shouldAwait ? await Task.Run(() => cr.CompiledAssembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}")) : cr.CompiledAssembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}");
+                pluginMetadata.Type = shouldAwait ? await Task.Run(() => type.Assembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}")) : type.Assembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}");
                 var plugin = GetPluginClass(pluginMetadata);
                 pluginMetadata.FullName = $"{plugin.FullName} [{pluginMetadata.FileName}]";
                 pluginMetadata.Plugin = plugin.Plugin;
@@ -108,7 +90,7 @@ namespace WindowsGSM.Functions
             catch (Exception e)
             {
                 pluginMetadata.Error = e.Message;
-                Console.WriteLine(pluginMetadata.Error);
+                Console.WriteLine(pluginMetadata.Error); 
                 pluginMetadata.IsLoaded = false;
             }
 

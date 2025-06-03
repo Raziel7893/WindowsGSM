@@ -149,7 +149,7 @@ namespace WindowsGSM.Functions
             {
                 var webRequest = WebRequest.Create("https://api.github.com/repos/OxideMod/Oxide.Rust/releases/latest") as HttpWebRequest;
                 webRequest.Method = "GET";
-                webRequest.UserAgent = "Anything";
+                webRequest.Headers["User-Agent"] = "Anything";
                 webRequest.ServicePoint.Expect100Continue = false;
                 var response = await webRequest.GetResponseAsync();
                 using (var responseReader = new StreamReader(response.GetResponseStream()))

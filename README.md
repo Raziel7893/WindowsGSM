@@ -1,12 +1,12 @@
 ﻿![Screenshot](https://windowsgsm.com/carousel/windowsgsm-desktop.png)
 
-[![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/afocommunity/WindowsGSM-Remote/)
-[![Build status](https://ci.appveyor.com/api/projects/status/ttaomnayo3gidf2g?svg=true)](https://ci.appveyor.com/project/afocommunity/WindowsGSM-Remote)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/35390bff1d4140da806eaff186cfbf5c)](https://www.codacy.com/gh/afocommunity/WindowsGSM-Remote?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=afocommunity/WindowsGSM-Remote&amp;utm_campaign=Badge_Grade)
-[![GitHub license](https://img.shields.io/github/license/afocommunity/WindowsGSM-Remote.svg)](https://github.com/afocommunity/WindowsGSM-Remote/blob/master/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/afocommunity/WindowsGSM-Remote.svg)](https://github.com/afocommunity/WindowsGSM-Remote/releases/)
-[![Github all releases](https://img.shields.io/github/downloads/afocommunity/WindowsGSM-Remote/total.svg)](https://github.com/afocommunity/WindowsGSM-Remote/releases/)
-[![Discord Shield](https://discordapp.com/api/guilds/490609354022715392/widget.png?style=shield)](https://discord.gg/AFO)
+[![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/WindowsGSM/WindowsGSM/)
+[![Build status](https://ci.appveyor.com/api/projects/status/ttaomnayo3gidf2g?svg=true)](https://ci.appveyor.com/project/WindowsGSM/windowsgsm)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/35390bff1d4140da806eaff186cfbf5c)](https://www.codacy.com/gh/WindowsGSM/WindowsGSM?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=WindowsGSM/WindowsGSM&amp;utm_campaign=Badge_Grade)
+[![GitHub license](https://img.shields.io/github/license/WindowsGSM/WindowsGSM.svg)](https://github.com/WindowsGSM/WindowsGSM/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/WindowsGSM/WindowsGSM.svg)](https://github.com/WindowsGSM/WindowsGSM/releases/)
+[![Github all releases](https://img.shields.io/github/downloads/WindowsGSM/WindowsGSM/total.svg)](https://github.com/WindowsGSM/WindowsGSM/releases/)
+[![Discord Shield](https://discordapp.com/api/guilds/590590698907107340/widget.png?style=shield)](https://discord.gg/bGc7t2R)
 
 # What is WindowsGSM?
 WindowsGSM is a powerful tool to manage game servers. Equipped with a GUI for server admins to install, import, start, stop, restart, update, and automate multiple servers with a push of a button.
@@ -127,7 +127,7 @@ For the Programm in general have a look over at its patreon:
 
 
 ### License
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/afocommunity/WindowsGSM-Remote/blob/master/LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/WindowsGSM/WindowsGSM/blob/master/LICENSE) file for details
 
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/afocommunity/WindowsGSM-Remote.svg)](https://starchart.cc/afocommunity/WindowsGSM-Remote)
+[![Stargazers over time](https://starchart.cc/WindowsGSM/WindowsGSM.svg)](https://starchart.cc/WindowsGSM/WindowsGSM)

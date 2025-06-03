@@ -258,7 +258,9 @@ namespace WindowsGSM.GameServer.Query
             try
             {
                 Dictionary<string, string> kv = await GetInfo();
-                return kv["Players"] + '/' + kv["MaxPlayers"];
+                if (kv != null)
+                    return kv["Players"] + '/' + kv["MaxPlayers"];
+                return null;
             }
             catch
             {

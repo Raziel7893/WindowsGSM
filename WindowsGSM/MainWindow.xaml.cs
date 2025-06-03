@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -33,6 +34,7 @@ using WindowsGSM.GameServer.Query;
 using Label = System.Windows.Controls.Label;
 using MessageBox = System.Windows.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
+using WindowsGSM.GameServer.Query;
 
 namespace WindowsGSM
 {
@@ -159,6 +161,64 @@ namespace WindowsGSM
         {
             HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
             source.AddHook(new HwndSourceHook(HandleMessages));
+        }
+
+
+        protected override async void OnClosing(CancelEventArgs e)
+        {
+            // Don't overwrite cancellation for close
+            if (e.Cancel == false)
+            {
+                // #2409: don't close window if there is a dialog still open
+                var dialog = await this.GetCurrentDialogAsync<BaseMetroDialog>();
+                e.Cancel = dialog != null && (this.ShowDialogsOverTitleBar || !dialog.DialogSettings.OwnerCanCloseWithDialog);
+
+                //add a close confirmation
+                const string message = "Are you sure that you would like to Exit and stop all servers?";
+                const string caption = "Exit WindowsGSM";
+                var result = MessageBox.Show(message, caption,
+                                             MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.No)
+                    e.Cancel = true;
+            }
+
+            if (e.Cancel == false)
+                StoppAllServers();
+
+            base.OnClosing(e);
+        }
+
+        public void StoppAllServers ()
+        {
+            foreach (var server in ServerGrid.Items.Cast<ServerTable>().ToList())
+            {
+                if (GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started)
+                {
+                    GameServer_Stop(server);
+                }
+            }
+            int secCounter = 0;
+            int processesRunning = 0;
+            //wait for all servers to stop
+            while (secCounter < 30)
+            {
+                Thread.Sleep(1000);// just wait a fixed 30 sec
+                processesRunning = 0;
+                secCounter++;
+                foreach (var server in ServerGrid.Items.Cast<ServerTable>().ToList())
+                {
+                    Process p = null;
+                    try
+                    {
+                        p = Process.GetProcessById(int.Parse(server.PID)); // will fail wenn the process is completly closed by now
+                        if (p != null && !p.HasExited)
+                            processesRunning++;
+                    }
+                    catch (Exception){ }
+                }
+                if (processesRunning == 0) break;
+            }
         }
 
         private IntPtr HandleMessages(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -1093,7 +1153,14 @@ namespace WindowsGSM
                     button_Stop.IsEnabled = true;
                     button_Restart.IsEnabled = true;
                     Process p = GetServerMetadata(row.ID).Process;
-                    button_Console.IsEnabled = (p == null || p.HasExited) ? false : !(p.StartInfo.CreateNoWindow || p.StartInfo.RedirectStandardOutput);
+                    try
+                    {
+                        button_Console.IsEnabled = (p == null || p.HasExited) ? false : !(p.StartInfo.CreateNoWindow || p.StartInfo.RedirectStandardOutput);
+                    }
+                    catch (Exception)
+                    {
+                        button_Console.IsEnabled = false;
+                    }
                     button_Update.IsEnabled = false;
                     button_Backup.IsEnabled = false;
 
@@ -2914,7 +2981,7 @@ namespace WindowsGSM
             var server = (Functions.ServerTable)ServerGrid.SelectedItem;
             if (server == null) { return; }
 
-            Process.Start(Functions.ServerPath.GetBackups(server.ID));
+            Process.Start("explorer", Functions.ServerPath.GetBackups(server.ID));
         }
 
         private void Browse_BackupFiles_Click(object sender, RoutedEventArgs e)
@@ -2934,7 +3001,7 @@ namespace WindowsGSM
             string path = Functions.ServerPath.GetServersConfigs(server.ID);
             if (Directory.Exists(path))
             {
-                Process.Start(path);
+                Process.Start("explorer",path);
             }
         }
 
@@ -2946,7 +3013,7 @@ namespace WindowsGSM
             string path = Functions.ServerPath.GetServersServerFiles(server.ID);
             if (Directory.Exists(path))
             {
-                Process.Start(path);
+                Process.Start("explorer", path);
             }
         }
         #endregion
