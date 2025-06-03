@@ -6,6 +6,7 @@ using System.Web;
 using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 
 namespace WindowsGSM.Functions
 {
@@ -64,7 +65,7 @@ namespace WindowsGSM.Functions
                         ""text"": """ + MainWindow.WGSM_VERSION + @" - Discord Alert"",
                         ""icon_url"": """ + avatarUrl + @"""
                     },
-                    ""timestamp"": """ + DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.mssZ") + @""",
+                    ""timestamp"": """ + DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.mssZ", CultureInfo.InvariantCulture) + @""",
                     ""thumbnail"": {
                         ""url"": """ + GetThumbnail(serverstatus) + @"""
                     }
