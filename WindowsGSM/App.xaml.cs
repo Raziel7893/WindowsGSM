@@ -4,12 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Linq;
 using System.IO;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 using Microsoft.Win32;
-using Newtonsoft.Json.Linq;
 
 namespace WindowsGSM
 {

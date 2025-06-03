@@ -1,10 +1,7 @@
 ﻿using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -38,6 +35,9 @@ namespace WindowsGSM.Functions
                 if (File.Exists(pluginFile))
                 {
                     PluginMetadata plugin = new PluginMetadata();
+                    plugin.IsLoaded = false;
+                    plugin.FileName = "NoValidPlugin";
+                    plugin.FullName = "NoValidPlugin";
                     try
                     {
                         plugin = await LoadPlugin(pluginFile, shouldAwait);

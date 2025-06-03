@@ -15,7 +15,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <WebPage>publish.htm</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <ApplicationVersion>1.25.0</ApplicationVersion>
+    <Version>1.25.0</Version>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -294,44 +295,25 @@
     <Resource Include="Images\Plugins\User.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Basic.Reference.Assemblies.Net80" Version="1.8.0" />
-    <PackageReference Include="ControlzEx" Version="7.0.0-rc0118" />
+    <PackageReference Include="Discord.Net.Commands" Version="3.17.4" />
+    <PackageReference Include="Discord.Net.WebSocket" Version="3.17.4" />
+    <PackageReference Include="Discord.Net.Interactions" Version="3.17.4" />
     <PackageReference Include="Microsoft.CodeAnalysis" Version="4.13.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
     <PackageReference Include="System.CodeDom" Version="10.0.0-preview.1.25080.5" />
-    <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <Reference Include="Discord.Net" Version="3.17.1" />
-    <PackageReference Include="Discord.Net.Commands" Version="3.17.1" />
-    <PackageReference Include="Discord.Net.Core" Version="3.17.1" />
-    <PackageReference Include="Discord.Net.Rest" Version="3.17.1" />
-    <PackageReference Include="Discord.Net.Webhook" Version="3.17.1" />
     <PackageReference Include="Discord.Net.WebSocket" Version="3.17.1" />
     <PackageReference Include="MahApps.Metro" Version="3.0.0-alpha0513" />
-	 <PackageReference Include="LiveCharts" Version="0.9.7.0" />
 	 <PackageReference Include="LiveCharts.Wpf" Version="0.9.7.0" />
-    <PackageReference Include="Discord.Net" Version="3.17.1" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.NETCore.Platforms" Version="8.0.0-preview.7.23375.6" />
     <PackageReference Include="NCrontab.Signed" Version="3.3.3" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="OpenGSQ" Version="2.1.5" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
-    <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
-    <PackageReference Include="System.ComponentModel.Composition" Version="9.0.0" />
-    <PackageReference Include="System.Interactive.Async" Version="6.0.1" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     <PackageReference Include="System.Management" Version="9.0.0" />
-    <PackageReference Include="System.Net.Http.Json" Version="9.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-    <PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="1.4.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>

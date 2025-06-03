@@ -6,8 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using WindowsGSM.Functions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
-using static WindowsGSM.MainWindow;
 
 namespace WindowsGSM.DiscordBot
 {

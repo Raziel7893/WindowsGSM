@@ -1,18 +1,11 @@
-﻿using Microsoft.VisualBasic.ApplicationServices;
-using NCrontab;
+﻿using NCrontab;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Dynamic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Security.AccessControl;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WindowsGSM.Functions;
 using static WindowsGSM.MainWindow;
 
 namespace WindowsGSM.Functions

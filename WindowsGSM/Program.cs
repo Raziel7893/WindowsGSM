@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 using System.Reflection;
-using WindowsGSM.Functions;
 
 namespace WindowsGSM
 {

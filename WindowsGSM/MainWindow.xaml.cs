@@ -34,7 +34,6 @@ using WindowsGSM.GameServer.Query;
 using Label = System.Windows.Controls.Label;
 using MessageBox = System.Windows.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
-using WindowsGSM.GameServer.Query;
 
 namespace WindowsGSM
 {
