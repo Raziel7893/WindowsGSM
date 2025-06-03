@@ -37,7 +37,15 @@ namespace WindowsGSM.Functions
                 var pluginFile = Path.Combine(pluginFolder, Path.GetFileName(pluginFolder));
                 if (File.Exists(pluginFile))
                 {
-                    var plugin = await LoadPlugin(pluginFile, shouldAwait);
+                    PluginMetadata plugin = new PluginMetadata();
+                    try
+                    {
+                        plugin = await LoadPlugin(pluginFile, shouldAwait);
+                    }
+                    catch (Exception ex)
+                    {
+                        File.AppendAllText("logs/pluginsImportError.log", $"error importing plugin {pluginFile}: {ex.Message}, {ex.StackTrace}");
+                    }
                     if (plugin != null)
                     {
                         plugins.Add(plugin);
@@ -90,7 +98,8 @@ namespace WindowsGSM.Functions
             catch (Exception e)
             {
                 pluginMetadata.Error = e.Message;
-                Console.WriteLine(pluginMetadata.Error); 
+                Console.WriteLine(pluginMetadata.Error);
+                File.AppendAllText("logs/pluginsImportError.log", $"error importing plugin {pluginMetadata.FileName}: {e.Message}, {e.StackTrace}");
                 pluginMetadata.IsLoaded = false;
             }
 

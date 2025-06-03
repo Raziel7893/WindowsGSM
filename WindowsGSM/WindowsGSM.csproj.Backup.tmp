@@ -1,0 +1,836 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{265CF81D-8287-45CB-958F-5987DDE68661}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>WindowsGSM</RootNamespace>
+    <AssemblyName>WindowsGSM</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <Deterministic>true</Deterministic>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>publish.htm</WebPage>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <NoWarn>1998;</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>1</WarningLevel>
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+    <NoWarn>1998;</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Images\WindowsGSM.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>WindowsGSM.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>67313EA18C45619B45D69B99247C435B6106EBCC</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>
+    </ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>false</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ControlzEx, Version=4.0.0.0, Culture=neutral, PublicKeyToken=69f1c32f803d307e, processorArchitecture=MSIL">
+      <HintPath>..\packages\ControlzEx.4.3.2\lib\net462\ControlzEx.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Discord.Net.Commands, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.Commands.3.13.1\lib\net461\Discord.Net.Commands.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Core, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.Core.3.13.1\lib\net461\Discord.Net.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Interactions, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.Interactions.3.13.1\lib\net461\Discord.Net.Interactions.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Rest, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.Rest.3.13.1\lib\net461\Discord.Net.Rest.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Webhook, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.Webhook.3.13.1\lib\netstandard2.0\Discord.Net.Webhook.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.WebSocket, Version=3.13.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Discord.Net.WebSocket.3.13.1\lib\net461\Discord.Net.WebSocket.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=1.2.0.246, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpZipLib.1.2.0\lib\net45\ICSharpCode.SharpZipLib.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="LiveCharts, Version=0.9.7.0, Culture=neutral, PublicKeyToken=0bc1f845d1ebb8df, processorArchitecture=MSIL">
+      <HintPath>..\packages\LiveCharts.0.9.7\lib\net45\LiveCharts.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="LiveCharts.Wpf, Version=0.9.7.0, Culture=neutral, PublicKeyToken=0bc1f845d1ebb8df, processorArchitecture=MSIL">
+      <HintPath>..\packages\LiveCharts.Wpf.0.9.7\lib\net45\LiveCharts.Wpf.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MahApps.Metro, Version=2.0.0.0, Culture=neutral, PublicKeyToken=51482d6f650b2b3f, processorArchitecture=MSIL">
+      <HintPath>..\packages\MahApps.Metro.2.1.1\lib\net47\MahApps.Metro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.1.1.1\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=3.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\lib\net45\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=3.1.6.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.3.1.6\lib\net461\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.5.0.0\lib\net461\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Microsoft.Win32.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Win32.Primitives.4.3.0\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Xaml.Behaviors, Version=1.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Xaml.Behaviors.Wpf.1.1.19\lib\net45\Microsoft.Xaml.Behaviors.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="NCrontab.Signed, Version=3.3.2.0, Culture=neutral, PublicKeyToken=5247b4370afff365, processorArchitecture=MSIL">
+      <HintPath>..\packages\NCrontab.Signed.3.3.2\lib\net35\NCrontab.Signed.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.AppContext.4.3.0\lib\net463\System.AppContext.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Collections.Immutable, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Collections.Immutable.5.0.0\lib\net461\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Console, Version=4.0.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Console.4.3.1\lib\net46\System.Console.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Diagnostics.Tracing, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.Tracing.4.3.0\lib\net462\System.Diagnostics.Tracing.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Globalization.Calendars, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Globalization.Calendars.4.3.0\lib\net46\System.Globalization.Calendars.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Interactive.Async, Version=5.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Interactive.Async.5.0.0\lib\net461\System.Interactive.Async.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Compression.4.3.0\lib\net46\System.IO.Compression.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.FileSystem, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.FileSystem.4.3.0\lib\net46\System.IO.FileSystem.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.FileSystem.Primitives.4.3.0\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Linq, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Linq.4.3.0\lib\net463\System.Linq.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Linq.Async, Version=5.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Linq.Async.5.0.0\lib\net461\System.Linq.Async.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Linq.Expressions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Linq.Expressions.4.3.0\lib\net463\System.Linq.Expressions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Net.Sockets, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Reactive, Version=5.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.5.0.0\lib\net472\System.Reactive.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.4.3.1\lib\net462\System.Runtime.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.7.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.7.1\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Extensions, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.Extensions.4.3.1\lib\net462\System.Runtime.Extensions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.4.3.0\lib\net463\System.Runtime.InteropServices.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.1\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.2, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.2\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Text.RegularExpressions, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.RegularExpressions.4.3.1\lib\net463\System.Text.RegularExpressions.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.4.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Xml.ReaderWriter, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Xml.ReaderWriter.4.3.1\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="DiscordBot\Actions.cs" />
+    <Compile Include="DiscordBot\AdminListItem.cs" />
+    <Compile Include="DiscordBot\Bot.cs" />
+    <Compile Include="DiscordBot\Commands.cs" />
+    <Compile Include="DiscordBot\Configs.cs" />
+    <Compile Include="DiscordBot\Interactions.cs" />
+    <Compile Include="DiscordBot\Modules\AutocompleteCommandsModule.cs" />
+    <Compile Include="DiscordBot\Modules\SlashCommandsModule.cs" />
+    <Compile Include="DiscordBot\Preconditions\RequireAdminAttribute.cs" />
+    <Compile Include="Functions\BackupConfig.cs" />
+    <Compile Include="Functions\CPU\Affinity.cs" />
+    <Compile Include="Functions\CPU\Priority.cs" />
+    <Compile Include="Functions\CrontabManager.cs" />
+    <Compile Include="Functions\DirectoryManagement.cs" />
+    <Compile Include="Functions\FileManagement.cs" />
+    <Compile Include="Functions\Github.cs" />
+    <Compile Include="Functions\GoogleAnalytics.cs" />
+    <Compile Include="Functions\Plugin.cs" />
+    <Compile Include="Functions\PluginManagement.cs" />
+    <Compile Include="Functions\ProcessManagement.cs" />
+    <Compile Include="Functions\ServerAddon.cs" />
+    <Compile Include="Functions\ServerCache.cs" />
+    <Compile Include="Functions\ServerConsole.cs" />
+    <Compile Include="Functions\SystemMetrics.cs" />
+    <Compile Include="Functions\UI.cs" />
+    <Compile Include="GameServer\Addon\AMXModX.cs" />
+    <Compile Include="GameServer\Addon\SourceMod.cs" />
+    <Compile Include="GameServer\ARKSE.cs" />
+    <Compile Include="GameServer\AVORION.cs" />
+    <Compile Include="GameServer\BT.cs" />
+    <Compile Include="GameServer\BW.cs" />
+    <Compile Include="GameServer\CE.cs" />
+    <Compile Include="GameServer\DMC.cs" />
+    <Compile Include="GameServer\DOD.cs" />
+    <Compile Include="GameServer\DODS.cs" />
+    <Compile Include="GameServer\EGS.cs" />
+    <Compile Include="GameServer\Engine\SteamCMDAgent.cs" />
+    <Compile Include="GameServer\Engine\Unity.cs" />
+    <Compile Include="GameServer\Engine\UnrealEngine.cs" />
+    <Compile Include="GameServer\HEAT.cs" />
+    <Compile Include="GameServer\HLOF.cs" />
+    <Compile Include="GameServer\INSS.cs" />
+    <Compile Include="GameServer\ECO.cs" />
+    <Compile Include="GameServer\ONSET.cs" />
+    <Compile Include="GameServer\Query\QueryTemplate.cs" />
+    <Compile Include="GameServer\ROR2.cs" />
+    <Compile Include="GameServer\Query\A2S.cs" />
+    <Compile Include="GameServer\Query\FIVEM.cs" />
+    <Compile Include="GameServer\Query\UT3.cs" />
+    <Compile Include="GameServer\RCC.cs" />
+    <Compile Include="GameServer\ROK.cs" />
+    <Compile Include="GameServer\SDK2013.cs" />
+    <Compile Include="GameServer\SDTD.cs" />
+    <Compile Include="GameServer\Data\Class.cs" />
+    <Compile Include="GameServer\CS.cs" />
+    <Compile Include="GameServer\CSCZ.cs" />
+    <Compile Include="GameServer\CSS.cs" />
+    <Compile Include="GameServer\DAYZ.cs" />
+    <Compile Include="GameServer\GTA5.cs" />
+    <Compile Include="GameServer\HL2DM.cs" />
+    <Compile Include="GameServer\INS.cs" />
+    <Compile Include="GameServer\L4D2.cs" />
+    <Compile Include="GameServer\MC.cs" />
+    <Compile Include="GameServer\MCBE.cs" />
+    <Compile Include="GameServer\MORDHAU.cs" />
+    <Compile Include="GameServer\NMRIH.cs" />
+    <Compile Include="GameServer\OLOW.cs" />
+    <Compile Include="GameServer\SE.cs" />
+    <Compile Include="GameServer\Engine\GoldSource.cs" />
+    <Compile Include="GameServer\Engine\Source.cs" />
+    <Compile Include="GameServer\SQ.cs" />
+    <Compile Include="GameServer\PS.cs" />
+    <Compile Include="GameServer\SW.cs" />
+    <Compile Include="GameServer\TF.cs" />
+    <Compile Include="GameServer\TFC.cs" />
+    <Compile Include="GameServer\UNT.cs" />
+    <Compile Include="GameServer\VTS.cs" />
+    <Compile Include="GameServer\ZPS.cs" />
+    <Compile Include="Functions\GlobalServerList.cs" />
+    <Compile Include="Functions\InstallAddons.cs" />
+    <Compile Include="Functions\UdpClientHandler.cs" />
+    <Compile Include="Functions\JavaHelper.cs" />
+    <Compile Include="WindowsFirewall.cs" />
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Functions\ServerPath.cs" />
+    <Compile Include="Functions\DiscordWebhook.cs" />
+    <Compile Include="GameServer\GMOD.cs" />
+    <Compile Include="GameServer\MCPE.cs" />
+    <Compile Include="GameServer\RUST.cs" />
+    <Compile Include="Functions\ServerConfig.cs" />
+    <Compile Include="Images\Row.cs" />
+    <Compile Include="GameServer\Data\Icon.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Icon.resx</DependentUpon>
+    </Compile>
+    <Compile Include="GameServer\CSGO.cs" />
+    <Compile Include="GameServer\TF2.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Functions\ServerTable.cs" />
+    <Compile Include="Installer\SteamCMD.cs" />
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="GameServer\Data\Icon.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Icon.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <None Include="app.manifest" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="Resources\roslyn.zip" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\SteamCMD.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\csgo.png" />
+    <Resource Include="Images\Games\tf2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\mc.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\gmod.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\mcpe.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\rust.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="NetFwTypeLib">
+      <Guid>{58FBCF7C-E7A9-467C-80B3-FC65E8FCCA08}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\cs.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\cscz.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\hl2dm.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\l4d2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\gta5.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM-BRONZE.ico" />
+    <Resource Include="Images\WindowsGSM-GOLD.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM-EMERALD.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM-BRONZE.png" />
+    <Resource Include="Images\WindowsGSM-EMERALD.png" />
+    <Resource Include="Images\WindowsGSM-GOLD.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\7dtd.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\mordhau.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\dayz.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\se.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\mcbe.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\olow.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\NCrontab.Signed.3.3.2\lib\net35\NCrontab.Signed.dll">
+      <Link>ReferencesEx\NCrontab.Signed.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\SplashScreen.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\css.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\ins.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\nmrih.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\arkse.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\zps.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\dods.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\sw.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Install.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Backup.ico" />
+    <Resource Include="Images\Restart.ico" />
+    <Resource Include="Images\Update.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Book.ico" />
+    <Resource Include="Images\Config.ico" />
+    <Resource Include="Images\Delete.ico" />
+    <Resource Include="Images\Files.ico" />
+    <Resource Include="Images\Issue.ico" />
+    <Resource Include="Images\Start.ico" />
+    <Resource Include="Images\Stop.ico" />
+    <Resource Include="Images\Zip.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM-Icon-Border.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\rok.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\heat.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Tools\SourceMod.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Tools\DayZSAL.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\bw.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM-Icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Tools\AMXModX.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\unt.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\egs.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\WindowsGSM.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\onset.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\avorion.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\ce.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\inss.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\dmc.png" />
+    <Resource Include="Images\Games\dod.png" />
+    <Resource Include="Images\Games\hlof.png" />
+    <Resource Include="Images\Games\rcc.png" />
+    <Resource Include="Images\Games\tfc.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\HMenu\Dashboard.ico" />
+    <Resource Include="Images\HMenu\Home.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\LiveCharts.0.9.7\lib\net45\LiveCharts.dll">
+      <Link>ReferencesEx\LiveCharts.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\LiveCharts.Wpf.0.9.7\lib\net45\LiveCharts.Wpf.dll">
+      <Link>ReferencesEx\LiveCharts.Wpf.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\HMenu\Discord.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\sq.png" />
+    <Resource Include="Images\Games\tf.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\bt.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\HMenu\Settings.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\ps.png" />
+    <Resource Include="Images\Games\ror2.png" />
+    <Resource Include="Images\Games\eco.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Restore.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Games\vts.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\SharpZipLib.1.2.0\lib\net45\ICSharpCode.SharpZipLib.dll">
+      <Link>ReferencesEx\ICSharpCode.SharpZipLib.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Discord.Net.Commands.3.13.1\lib\net461\Discord.Net.Commands.dll">
+      <Link>ReferencesEx\Discord.Net.Commands.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Discord.Net.Core.3.13.1\lib\net461\Discord.Net.Core.dll">
+      <Link>ReferencesEx\Discord.Net.Core.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\Discord.Net.Rest.3.13.1\lib\net461\Discord.Net.Rest.dll">
+      <Link>ReferencesEx\Discord.Net.Rest.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Discord.Net.Webhook.3.13.1\lib\netstandard2.1\Discord.Net.Webhook.dll">
+      <Link>ReferencesEx\Discord.Net.Webhook.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Discord.Net.WebSocket.3.13.1\lib\net461\Discord.Net.WebSocket.dll">
+      <Link>ReferencesEx\Discord.Net.WebSocket.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\ControlzEx.4.3.2\lib\net462\ControlzEx.dll">
+      <Link>ReferencesEx\ControlzEx.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll">
+      <Link>ReferencesEx\System.Threading.Tasks.Extensions.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll">
+      <Link>ReferencesEx\System.Numerics.Vectors.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll">
+      <Link>ReferencesEx\System.Memory.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\System.Interactive.Async.5.0.0\lib\net461\System.Interactive.Async.dll">
+      <Link>ReferencesEx\System.Interactive.Async.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Microsoft.Bcl.AsyncInterfaces.1.1.1\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll">
+      <Link>ReferencesEx\Microsoft.Bcl.AsyncInterfaces.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.5.0.0\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll">
+      <Link>ReferencesEx\Microsoft.Extensions.DependencyInjection.Abstractions.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\Microsoft.Extensions.DependencyInjection.3.1.6\lib\net461\Microsoft.Extensions.DependencyInjection.dll">
+      <Link>ReferencesEx\Microsoft.Extensions.DependencyInjection.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\System.Runtime.CompilerServices.Unsafe.4.7.1\lib\net461\System.Runtime.CompilerServices.Unsafe.dll">
+      <Link>ReferencesEx\System.Runtime.CompilerServices.Unsafe.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\Microsoft.Xaml.Behaviors.Wpf.1.1.19\lib\net45\Microsoft.Xaml.Behaviors.dll">
+      <Link>ReferencesEx\Microsoft.Xaml.Behaviors.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\System.Collections.Immutable.5.0.0\lib\net461\System.Collections.Immutable.dll">
+      <Link>ReferencesEx\System.Collections.Immutable.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll">
+      <Link>ReferencesEx\System.Buffers.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\packages\System.Linq.4.3.0\lib\net463\System.Linq.dll">
+      <Link>ReferencesEx\System.Linq.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Tools\OxideMod.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\HMenu\ViewPlugins.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll">
+      <Link>ReferencesEx\Newtonsoft.Json.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\lib\net45\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll">
+      <Link>ReferencesEx\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Plugins\User.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets'))" />
+  </Target>
+  <Import Project="..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets" Condition="Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.3.6.0\build\net472\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.targets')" />
+</Project>
