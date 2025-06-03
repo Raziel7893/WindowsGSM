@@ -723,7 +723,7 @@
             </GridSplitter>
             <Grid Grid.Row="2">
                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="475" MaxWidth="475"/>
+                  <ColumnDefinition Width="515" MaxWidth="515"/>
                   <ColumnDefinition Width="5"/>
                   <ColumnDefinition Width="1*"/>
                </Grid.ColumnDefinitions>
@@ -751,17 +751,17 @@
                   <Label x:Name="label_embedconsole" Content="Embed Console" HorizontalAlignment="Left" Margin="5,99,0,0" VerticalAlignment="Top"/>
                   <mah:ToggleSwitch x:Name="switch_embedconsole" Margin="100,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_EmbedConsole_Click" Width="44" Height="30"/>
 
-                  <Label Content="Auto Restart" HorizontalAlignment="Left" Margin="177,127,0,0" VerticalAlignment="Top"/>
-                  <mah:ToggleSwitch x:Name="switch_autorestart" Margin="258,125,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_AutoRestart_Click" Width="44" Height="30"/>
+                  <Label Content="Auto Restart" HorizontalAlignment="Left" Margin="207,127,0,0" VerticalAlignment="Top"/>
+                  <mah:ToggleSwitch x:Name="switch_autorestart" Margin="288,125,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_AutoRestart_Click" Width="44" Height="30"/>
 
-                  <Label Content="Auto Update" HorizontalAlignment="Left" Margin="338,127,0,0" VerticalAlignment="Top"/>
-                  <mah:ToggleSwitch x:Name="switch_autoupdate" Margin="422,125,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_AutoUpdate_Click" Width="44" Height="30"/>
+                  <Label Content="Auto Update" HorizontalAlignment="Left" Margin="378,127,0,0" VerticalAlignment="Top"/>
+                  <mah:ToggleSwitch x:Name="switch_autoupdate" Margin="472,125,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_AutoUpdate_Click" Width="44" Height="30"/>
 
-                  <Label Content="Update on Start" HorizontalAlignment="Left" Margin="159,99,0,0" VerticalAlignment="Top"/>
-                  <mah:ToggleSwitch x:Name="switch_updateonstart" Margin="258,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_UpdateOnStart_Click" Width="44" Height="30"/>
+                  <Label Content="Update on Start" HorizontalAlignment="Left" Margin="189,99,0,0" VerticalAlignment="Top"/>
+                  <mah:ToggleSwitch x:Name="switch_updateonstart" Margin="288,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_UpdateOnStart_Click" Width="44" Height="30"/>
 
-                  <Label Content="Backup on Start" HorizontalAlignment="Left" Margin="323,99,0,0" VerticalAlignment="Top"/>
-                  <mah:ToggleSwitch x:Name="switch_backuponstart" Margin="422,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_BackupOnStart_Click" Width="44" Height="30"/>
+                  <Label Content="Backup on Start" HorizontalAlignment="Left" Margin="373,99,0,0" VerticalAlignment="Top"/>
+                  <mah:ToggleSwitch x:Name="switch_backuponstart" Margin="472,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_BackupOnStart_Click" Width="44" Height="30"/>
 
                   <Label x:Name="label_discordalert" Content="Discord Alert" HorizontalAlignment="Left" Margin="5,70,0,0" VerticalAlignment="Top"/>
                   <mah:ToggleSwitch x:Name="switch_discordalert" Margin="99,68,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_DiscordAlert_Click" Width="44" Height="30"/>
