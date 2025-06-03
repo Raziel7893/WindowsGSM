@@ -11,6 +11,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using System.CodeDom.Compiler;
 using System.Text;
 using WindowsGSM.Functions;
+using Microsoft.Extensions.DependencyModel;
 
 public class RoslynCompiler
 {
@@ -26,10 +27,11 @@ public class RoslynCompiler
         _pluginMetadata = pluginMetadata;
         _typeName = typeName;
 
-        var refs = typesToReference.Select(h => MetadataReference.CreateFromFile(h.Assembly.Location) as MetadataReference).ToList();
-        refs.AddRange(Net80.References.All);
-        refs.Add(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).GetTypeInfo().Assembly.Location), "System.Runtime.dll")));
-        refs.Add(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).GetTypeInfo().Assembly.Location), "System.Private.CoreLib.dll")));
+        var refs = DependencyContext.Default.CompileLibraries // filter out some libs?
+            .SelectMany(cl => cl.ResolveReferencePaths())
+            .Select(asm => MetadataReference.CreateFromFile(asm))
+            .ToList();
+
         refs.Add(MetadataReference.CreateFromFile(typeof(RoslynCompiler).Assembly.Location)); 
         refs.Add(MetadataReference.CreateFromFile(typeof(Newtonsoft.Json.JsonConvert).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(ZipFile).Assembly.Location));

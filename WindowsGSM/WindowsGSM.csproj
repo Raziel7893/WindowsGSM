@@ -25,6 +25,9 @@
     <UseWPF>true</UseWPF>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
   </PropertyGroup>
+   <PropertyGroup>
+      <PreserveCompilationContext>true</PreserveCompilationContext>
+   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>False</Optimize>
     <NoWarn>1998;1416;CA1416</NoWarn>
@@ -41,6 +44,9 @@
     <NoWarn>1998;1416;CA1416</NoWarn>
     <Optimize>False</Optimize>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+</PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Images\WindowsGSM.ico</ApplicationIcon>
   </PropertyGroup>
@@ -292,6 +298,7 @@
     <PackageReference Include="ControlzEx" Version="7.0.0-rc0118" />
     <PackageReference Include="Microsoft.CodeAnalysis" Version="4.13.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.2" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
     <PackageReference Include="System.CodeDom" Version="10.0.0-preview.1.25080.5" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
@@ -326,5 +333,18 @@
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="1.4.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 </Project>
