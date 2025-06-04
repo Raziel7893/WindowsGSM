@@ -34,6 +34,8 @@ namespace WindowsGSM.Functions
             public const string AutoRestartAlert = "autorestartalert";
             public const string AutoUpdateAlert = "autoupdatealert";
             public const string AutoIpUpdateAlert = "autoipupdatealert";
+            public const string SkipUserSetup = "skipusersetup";
+            
             public const string RestartCrontabAlert = "restartcrontabalert";
             public const string CrashAlert = "crashalert";
             public const string CPUPriority = "cpupriority";
@@ -67,8 +69,9 @@ namespace WindowsGSM.Functions
         public bool AutoRestartAlert;
         public bool AutoUpdateAlert;
         public bool RestartCrontabAlert;
-        public bool CrashAlert;
+        public bool CrashAlert; 
         public bool AutoIpUpdate;
+        public bool SkipUserSetup;
         public string CPUPriority;
         public string CPUAffinity;
         public bool AutoScroll;
@@ -140,8 +143,9 @@ namespace WindowsGSM.Functions
                             case SettingName.AutoRestartAlert: AutoRestartAlert = keyvalue[1] == "1"; break;
                             case SettingName.AutoUpdateAlert: AutoUpdateAlert = keyvalue[1] == "1"; break;
                             case SettingName.RestartCrontabAlert: RestartCrontabAlert = keyvalue[1] == "1"; break;
-                            case SettingName.CrashAlert: CrashAlert = keyvalue[1] == "1"; break;
+                            case SettingName.CrashAlert: CrashAlert = keyvalue[1] == "1"; break; 
                             case SettingName.AutoIpUpdateAlert: AutoIpUpdate = keyvalue[1] == "1"; break;
+                            case SettingName.SkipUserSetup: SkipUserSetup = keyvalue[1] == "1"; break;
                             case SettingName.CPUPriority: CPUPriority = keyvalue[1]; break;
                             case SettingName.CPUAffinity: CPUAffinity = keyvalue[1]; break;
                             case SettingName.AutoScroll: AutoScroll = keyvalue[1] == "1"; break;
@@ -181,6 +185,7 @@ namespace WindowsGSM.Functions
             RestartCrontabAlert = true;
             CrashAlert = true;
             AutoIpUpdate = true;
+            SkipUserSetup = false;
             CPUPriority = "2";
             CPUAffinity = string.Concat(System.Linq.Enumerable.Repeat("1", Environment.ProcessorCount));
             AutoScroll = true;
@@ -233,6 +238,7 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.RestartCrontabAlert}=\"1\"");
                     textwriter.WriteLine($"{SettingName.CrashAlert}=\"1\"");
                     textwriter.WriteLine($"{SettingName.AutoIpUpdateAlert}=\"0\"");
+                    textwriter.WriteLine($"{SettingName.SkipUserSetup}=\"0\"");
                 }
 
                 return true;

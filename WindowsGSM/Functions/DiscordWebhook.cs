@@ -10,18 +10,20 @@ using System.Globalization;
 
 namespace WindowsGSM.Functions
 {
-    class DiscordWebhook 
+    class DiscordWebhook
     {
         private static readonly HttpClient _httpClient = new HttpClient();
         private readonly string _webhookUrl;
         private readonly string _customMessage;
         private readonly string _donorType;
+        private readonly bool _skipUserSetting;
 
-        public DiscordWebhook(string webhookurl, string customMessage, string donorType = "")
+        public DiscordWebhook(string webhookurl, string customMessage, string donorType = "", bool skippAccountOverride = false)
         {
             _webhookUrl = webhookurl ?? string.Empty;
             _customMessage = customMessage ?? string.Empty;
             _donorType = donorType ?? string.Empty;
+            _skipUserSetting = skippAccountOverride;
         }
 
         public async Task<bool> Send(string serverid, string servergame, string serverstatus, string servername, string serverip, string serverport)
@@ -31,11 +33,15 @@ namespace WindowsGSM.Functions
                 return false;
             }
 
-            string avatarUrl = GetAvatarUrl();
+            string userData = "";
+            var avatarUrl = GetAvatarUrl();
+            if (!_skipUserSetting)
+                userData = "    \"username\": \"WindowsGsm\",\r\n" +
+                $"              \"avatar_url\": \"" + avatarUrl + "\",\r\n";
+
             string json = @"
             {
-                ""username"": ""WindowsGSM"",
-                ""avatar_url"": """ + avatarUrl  + @""",
+                " + userData + @"
                 ""content"": """ + HttpUtility.JavaScriptStringEncode(_customMessage) + @""",
                 ""embeds"": [
                 {
@@ -54,7 +60,7 @@ namespace WindowsGSM.Functions
                     },
                     {
                         ""name"": ""Server IP:Port"",
-                        ""value"": """ + serverip + ":"+ serverport + @""",
+                        ""value"": """ + serverip + ":" + serverport + @""",
                         ""inline"": true
                     }],
                     ""author"": {
@@ -223,7 +229,7 @@ namespace WindowsGSM.Functions
             catch { }
         }
 
-        protected static string c(string t) => Convert.ToBase64String(Encoding.UTF8.GetBytes(t).Select(b => (byte) (b ^ 0x53)).ToArray());
-        protected static string d(string t) => Encoding.UTF8.GetString(Convert.FromBase64String(t).Select(b => (byte) (b ^ 0x53)).ToArray());
+        protected static string c(string t) => Convert.ToBase64String(Encoding.UTF8.GetBytes(t).Select(b => (byte)(b ^ 0x53)).ToArray());
+        protected static string d(string t) => Encoding.UTF8.GetString(Convert.FromBase64String(t).Select(b => (byte)(b ^ 0x53)).ToArray());
     }
 }

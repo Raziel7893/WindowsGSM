@@ -88,6 +88,7 @@ namespace WindowsGSM
             public bool RestartCrontabAlert;
             public bool CrashAlert;
             public bool AutoIpUpdateAlert;
+            public bool SkipUserSetup;
 
             // Restart Crontab Settings
             public bool RestartCrontab;
@@ -132,7 +133,7 @@ namespace WindowsGSM
             Crashed = 13
         }
 
-        public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString().Reverse().Skip(2).Reverse());
+        public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public static readonly int MAX_SERVER = 50;
         public static readonly string WGSM_PATH = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
         public static readonly string DEFAULT_THEME = "Cyan";
@@ -883,6 +884,7 @@ namespace WindowsGSM
             _serverMetadata[i].AutoStartAlert = serverConfig.AutoStartAlert;
             _serverMetadata[i].AutoUpdateAlert = serverConfig.AutoUpdateAlert;
             _serverMetadata[i].AutoIpUpdateAlert = serverConfig.AutoIpUpdate;
+            _serverMetadata[i].SkipUserSetup = serverConfig.SkipUserSetup; 
             _serverMetadata[i].RestartCrontabAlert = serverConfig.RestartCrontabAlert;
             _serverMetadata[i].CrashAlert = serverConfig.CrashAlert;
 
@@ -913,7 +915,7 @@ namespace WindowsGSM
                     {
                         if (GetServerMetadata(serverId).DiscordAlert && GetServerMetadata(serverId).AutoStartAlert)
                         {
-                            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+                            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
                             await webhook.Send(server.ID, server.Game, "Started | Auto Start", server.Name, server.IP, server.Port);
                             _latestWebhookSend = GetServerMetadata(serverId).ServerStatus;
                         }
@@ -939,7 +941,7 @@ namespace WindowsGSM
                         {
                             if (_serverMetadata[serverId].CurrentPublicIp == string.Empty || _serverMetadata[serverId].CurrentPublicIp != currentPublicIp)
                             {
-                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
                                 await webhook.Send(server.ID, server.Game, "Current Public IP", server.Name, currentPublicIp, server.Port);
                                 _serverMetadata[serverId].CurrentPublicIp = currentPublicIp;
                             }
@@ -1619,7 +1621,7 @@ namespace WindowsGSM
             int serverId = int.Parse(server.ID);
             if (!GetServerMetadata(serverId).DiscordAlert) { return; }
 
-            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
             await webhook.Send(server.ID, server.Game, "Webhook Test Alert", server.Name, server.IP, server.Port);
         }
 
@@ -2551,7 +2553,7 @@ namespace WindowsGSM
                     {
                         if (CheckWebhookThreshold(ref _lastCrashTime) || _latestWebhookSend != ServerStatus.Crashed)
                         {
-                            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+                            var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
                             await webhook.Send(server.ID, server.Game, "Crashed", server.Name, server.IP, server.Port);
                             _latestWebhookSend = ServerStatus.Crashed;
                         }
@@ -2593,7 +2595,7 @@ namespace WindowsGSM
                             //Only send Webhook_Start if there wasn't a retry in the last X min
                             if (CheckWebhookThreshold(ref _lastAutoRestartTime))
                             {
-                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
                                 await webhook.Send(server.ID, server.Game, "Restarted | Auto Restart", server.Name, server.IP, server.Port);
                                 _latestWebhookSend = GetServerMetadata(serverId).ServerStatus;
                             }
@@ -2686,7 +2688,7 @@ namespace WindowsGSM
 
                             if (GetServerMetadata(serverId).DiscordAlert && GetServerMetadata(serverId).AutoUpdateAlert)
                             {
-                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType);
+                                var webhook = new DiscordWebhook(GetServerMetadata(serverId).DiscordWebhook, GetServerMetadata(serverId).DiscordMessage, g_DonorType, GetServerMetadata(serverId).SkipUserSetup);
                                 await webhook.Send(server.ID, server.Game, "Updated | Auto Update", server.Name, server.IP, server.Port);
                                 _latestWebhookSend = GetServerMetadata(serverId).ServerStatus;
                             }
@@ -3796,6 +3798,14 @@ namespace WindowsGSM
             if (server == null) { return; }
             _serverMetadata[int.Parse(server.ID)].AutoIpUpdateAlert = MahAppSwitch_AutoIpUpdate.IsOn;
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.AutoIpUpdateAlert, GetServerMetadata(server.ID).AutoIpUpdateAlert ? "1" : "0");
+        }
+
+        private void Switch_SkipUserSetup_Click(object sender, RoutedEventArgs e)
+        {
+            var server = (ServerTable)ServerGrid.SelectedItem;
+            if (server == null) { return; }
+            _serverMetadata[int.Parse(server.ID)].SkipUserSetup = MahAppSwitch_SkipUserSetup.IsOn;
+            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.SkipUserSetup, GetServerMetadata(server.ID).SkipUserSetup ? "1" : "0");
         }
         #endregion
 
