@@ -295,7 +295,7 @@ namespace WindowsGSM.Functions
 
                 if (Window.GetServerMetadata(serverId).DiscordAlert && Window.GetServerMetadata(serverId).RestartCrontabAlert)
                 {
-                    var webhook = new DiscordWebhook(Window.GetServerMetadata(serverId).DiscordWebhook, Window.GetServerMetadata(serverId).DiscordMessage, Window.g_DonorType);
+                    var webhook = new DiscordWebhook(Window.GetServerMetadata(serverId).DiscordWebhook, Window.GetServerMetadata(serverId).DiscordMessage, Window.g_DonorType, Window.GetServerMetadata(serverId).SkipUserSetup);
                     await webhook.Send(Server.ID, Server.Game, "Restarted | Restart Crontab", Server.Name, Server.IP, Server.Port);
                     Window._latestWebhookSend = ServerStatus.Restarted;
                 }
