@@ -25,6 +25,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
+	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
   </PropertyGroup>
    <PropertyGroup>
@@ -157,7 +158,7 @@
     <Resource Include="Images\Games\olow.png" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\packages\NCrontab.Signed.3.3.2\lib\net35\NCrontab.Signed.dll">
+    <EmbeddedResource Include="..\packages\NCrontab.Signed.3.3.2\lib\net35\NCrontab.Signed.dll" WithCulture="false">
       <Link>ReferencesEx\NCrontab.Signed.dll</Link>
     </EmbeddedResource>
   </ItemGroup>
