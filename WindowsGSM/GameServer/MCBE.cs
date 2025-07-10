@@ -43,6 +43,7 @@ namespace WindowsGSM.GameServer
         public string Maxplayers = "10";
         public string Additional = string.Empty;
 
+        public string LinkApi = "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links";
         public string RegexString = @"https:\/\/www.minecraft\.net\/bedrockdedicatedserver\/bin-win\/(bedrock-server-(.*?)\.zip)";
 
         public MCBE(Functions.ServerConfig serverData)
@@ -158,7 +159,7 @@ namespace WindowsGSM.GameServer
             {
                 using (WebClient webClient = new MCBEWebclient())
                 {
-                    string html = await webClient.DownloadStringTaskAsync("https://www.minecraft.net/en-us/download/server/bedrock/");
+                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
                     Regex regex = new Regex(RegexString);
                     var matches = regex.Matches(html);
 
@@ -198,7 +199,7 @@ namespace WindowsGSM.GameServer
                 {
                     string remoteBuild = await GetRemoteBuild();
 
-                    string html = await webClient.DownloadStringTaskAsync("https://www.minecraft.net/en-us/download/server/bedrock/");
+                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
                     Regex regex = new Regex(RegexString);
                     var matches = regex.Matches(html);
 
@@ -316,7 +317,7 @@ namespace WindowsGSM.GameServer
             {
                 using (WebClient webClient = new MCBEWebclient())
                 {
-                    string html = await webClient.DownloadStringTaskAsync("https://www.minecraft.net/en-us/download/server/bedrock/");
+                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
 
                     Regex regex = new Regex(RegexString);
                     var matches = regex.Matches(html);
