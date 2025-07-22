@@ -44,23 +44,24 @@ namespace WindowsGSM.DiscordBot
                 string[] args = message.Content.Split(new[] { ' ' }, 2);
                 string[] splits = args[1].Split(' ');
 
-                switch (splits[0])
+                string command = splits[0].Trim().ToLower();
+                switch (command)
                 {
                     case "start":
                     case "stop":
-                    case "stopAll":
+                    case "stopall":
                     case "restart":
                     case "send":
-                    case "sendR":
+                    case "sendr":
                     case "list":
                     case "check":
                     case "backup":
                     case "update":
                     case "stats":
                     case "players":
-                    case "serverStats":
+                    case "serverstats":
                         List<string> serverIds = Configs.GetServerIdsByAdminId(message.Author.Id.ToString());
-                        if (splits[0] == "check")
+                        if (command == "check")
                         {
                             await message.Channel.SendMessageAsync(
                                 serverIds.Contains("0") ?
@@ -69,27 +70,27 @@ namespace WindowsGSM.DiscordBot
                             break;
                         }
 
-                        if (splits[0] == "list" && serverIds.Contains("0"))
+                        if (command == "list" && serverIds.Contains("0"))
                         {
                             await Action_List(message);
                         }
-                        else if (splits[0] == "stopAll" && serverIds.Contains("0"))
+                        else if (command == "stopall" && serverIds.Contains("0"))
                         {
                             await Action_StopAll(message);
                         }
-                        else if (splits[0] != "list" && (serverIds.Contains("0") || serverIds.Contains(splits[1])))
+                        else if (command != "list" && (serverIds.Contains("0") || serverIds.Contains(splits[1])))
                         {
-                            switch (splits[0])
+                            switch (command)
                             {
                                 case "start": await Action_Start(message, args[1]); break;
                                 case "stop": await Action_Stop(message, args[1]); break;
                                 case "restart": await Action_Restart(message, args[1]); break;
                                 case "send": await Action_SendCommand(message, args[1]); break;
-                                case "sendR": await Action_SendCommand(message, args[1], true); break;
+                                case "sendr": await Action_SendCommand(message, args[1], true); break;
                                 case "backup": await Action_Backup(message, args[1]); break;
                                 case "update": await Action_Update(message, args[1]); break;
                                 case "players": await Action_PlayerList(message, args[1]); break;
-                                case "serverStats": await Action_GameServerStats(message, args[1]); break;
+                                case "serverstats": await Action_GameServerStats(message, args[1]); break;
                                 case "stats": await Action_Stats(message); break;
                             }
                         }
@@ -493,8 +494,8 @@ namespace WindowsGSM.DiscordBot
             };
 
             string prefix = Configs.GetBotPrefix();
-            embed.AddField("Command", $"{prefix}wgsm check\n{prefix}wgsm list\n{prefix}wgsm stats\n{prefix}wgsm start <SERVERID>\n{prefix}wgsm stop <SERVERID>\n{prefix}wgsm restart <SERVERID>\n{prefix}wgsm update <SERVERID>\n{prefix}wgsm send <SERVERID> <COMMAND>\n{prefix}wgsm sendR <SERVERID> <COMMAND>\n{prefix}wgsm backup <SERVERID>\n{prefix}wgsm serverStats <SERVERID>\n{prefix}wgsm players <SERVERID>", inline: true);
-            embed.AddField("Usage", "Check permission\nPrint server list with id, status and name\nGathers Stats about the HostServer\nStart a server remotely by serverId\nStop a server remotely by serverId\nRestart a server remotely by serverId\nUpdate a server remotely by serverId\nSend a command to server console\nSend a command to server console and gather the response\nBackup a server remotely by serverId\nGathers infos about the given serverID\nCollects a list of Players, if available", inline: true);
+            embed.AddField("Command", $"{prefix}wgsm check\n{prefix}wgsm list\n{prefix}wgsm stats\n{prefix}wgsm stopall\n{prefix}wgsm start <SERVERID>\n{prefix}wgsm stop <SERVERID>\n{prefix}wgsm restart <SERVERID>\n{prefix}wgsm update <SERVERID>\n{prefix}wgsm send <SERVERID> <COMMAND>\n{prefix}wgsm sendR <SERVERID> <COMMAND>\n{prefix}wgsm backup <SERVERID>\n{prefix}wgsm serverStats <SERVERID>\n{prefix}wgsm players <SERVERID>", inline: true);
+            embed.AddField("Usage", "Check permission\nPrint server list with id, status and name\nGathers Stats about the HostServer\nStop all servers\nStart a server remotely by serverId\nStop a server remotely by serverId\nRestart a server remotely by serverId\nUpdate a server remotely by serverId\nSend a command to server console\nSend a command to server console and gather the response\nBackup a server remotely by serverId\nGathers infos about the given serverID\nCollects a list of Players, if available", inline: true);
 
             await message.Channel.SendMessageAsync(embed: embed.Build());
         }
