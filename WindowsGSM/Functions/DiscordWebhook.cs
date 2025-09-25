@@ -100,6 +100,47 @@ namespace WindowsGSM.Functions
             return false;
         }
 
+        public async Task<bool> SendPlain(string customMessage)
+        {
+            if (string.IsNullOrWhiteSpace(_webhookUrl))
+            {
+                return false;
+            }
+
+            string userData = "";
+            var avatarUrl = GetAvatarUrl();
+            if (!_skipUserSetting)
+                userData = "    \"username\": \"WindowsGsm\",\r\n" +
+                $"              \"avatar_url\": \"" + avatarUrl + "\",\r\n";
+
+            string json = @"
+            {
+                " + userData + @"
+                ""content"": """ + HttpUtility.JavaScriptStringEncode(customMessage) + @"""
+            }";
+
+            File.WriteAllText("debugWebhook_Content.log", json);
+
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            File.WriteAllText("debugWebhook_ContentAfterConversion.log", content.ReadAsStringAsync().Result);
+
+            try
+            {
+                var response = await _httpClient.PostAsync(_webhookUrl, content);
+                if (response.Content != null)
+                {
+                    File.WriteAllText("debugWebhook.log", response.Content.ReadAsStringAsync().Result);
+                    return true;
+                }
+            }
+            catch
+            {
+                System.Diagnostics.Debug.WriteLine($"Fail to send webhook ({_webhookUrl})");
+            }
+
+            return false;
+        }
+
         private static string GetColor(string serverStatus)
         {
             if (serverStatus.Contains("Started"))
