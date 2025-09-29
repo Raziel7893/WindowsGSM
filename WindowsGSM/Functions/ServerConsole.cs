@@ -154,7 +154,7 @@ namespace WindowsGSM.Functions
             }
 
             //check for known join codes
-            if (text.Contains("join code"))
+            if (text.Contains("join code", StringComparison.InvariantCultureIgnoreCase) || text.Contains("joincode",StringComparison.InvariantCultureIgnoreCase))
             {
                 JoinCodeLine = text;
                 SendWebhookAsync(text);
@@ -176,7 +176,7 @@ namespace WindowsGSM.Functions
                 {
                     MainWindow.ServerStatus serverStatus = WindowsGSM.GetServerStatus(_serverId);
                     var server = WindowsGSM.GetServerTableById(_serverId);
-                    if (WindowsGSM.GetServerMetadata(_serverId).DiscordAlert &&(WindowsGSM.GetServerMetadata(_serverId).AutoStartAlert || WindowsGSM.GetServerMetadata(_serverId).AutoRestartAlert))
+                    if (WindowsGSM.GetServerMetadata(_serverId).DiscordAlert && StartAlertsEnabled(WindowsGSM))
                     {
                         var webhook = new DiscordWebhook(WindowsGSM.GetServerMetadata(_serverId).DiscordWebhook, WindowsGSM.GetServerMetadata(_serverId).DiscordMessage, WindowsGSM.g_DonorType, WindowsGSM.GetServerMetadata(_serverId).SkipUserSetup);
                         await webhook.SendPlain($"Server {_serverId}, {server.Name}:  Join Code Found: {text}");
@@ -184,6 +184,8 @@ namespace WindowsGSM.Functions
                 }
             });
         }
+
+ 
 
         public static void SendMessageToMainWindow(IntPtr hWnd, string message)
         {
@@ -241,6 +243,11 @@ namespace WindowsGSM.Functions
             var text = string.Join(Environment.NewLine, _recorderConsoleList.ToArray());
             _recorderConsoleList.Clear();
             return text;
+        }
+
+        private bool StartAlertsEnabled(MainWindow WindowsGSM)
+        {
+            return (WindowsGSM.GetServerMetadata(_serverId).AutoStartAlert || WindowsGSM.GetServerMetadata(_serverId).AutoRestartAlert || WindowsGSM.GetServerMetadata(_serverId).RestartCrontabAlert);
         }
     }
 }
