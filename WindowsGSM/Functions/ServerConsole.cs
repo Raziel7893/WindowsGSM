@@ -154,6 +154,11 @@ namespace WindowsGSM.Functions
             }
 
             //check for known join codes
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
             if (text.Contains("join code", StringComparison.InvariantCultureIgnoreCase) || text.Contains("joincode",StringComparison.InvariantCultureIgnoreCase))
             {
                 JoinCodeLine = text;
