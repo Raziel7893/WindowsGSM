@@ -66,7 +66,6 @@ namespace WindowsGSM.Functions
             var compiler = new RoslynCompiler($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}", File.ReadAllText(path), new[] { typeof(Console), typeof(Console) }, pluginMetadata);
             var type = compiler.Compile();
 
-
             try
             {
                 pluginMetadata.Type = shouldAwait ? await Task.Run(() => type.Assembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}")) : type.Assembly.GetType($"WindowsGSM.Plugins.{Path.GetFileNameWithoutExtension(path)}");

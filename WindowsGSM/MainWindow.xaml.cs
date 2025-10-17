@@ -1994,7 +1994,7 @@ namespace WindowsGSM
             _serverMetadata[int.Parse(server.ID)].Process = p;
             p.Exited += (sender, e) => OnGameServerExited(server);
 
-            await Task.Run(() =>
+            var task = Task.Run(() =>
             {
                 try
                 {
@@ -2005,7 +2005,6 @@ namespace WindowsGSM
                             Thread.Sleep(500);
                             //Debug.WriteLine("Try Setting ShowMinNoActivate Console Window");
                         }
-
                         Debug.WriteLine("Set ShowMinNoActivate Console Window");
 
                         //Save MainWindow
@@ -2017,7 +2016,6 @@ namespace WindowsGSM
                     ShowWindow(p.MainWindowHandle, WindowShowStyle.Hide);
                     Thread.Sleep(500);
                     ShowWindow(p.MainWindowHandle, _serverMetadata[int.Parse(server.ID)].ShowConsole ? WindowShowStyle.ShowNormal : WindowShowStyle.Hide);
-
                 }
                 catch
                 {
