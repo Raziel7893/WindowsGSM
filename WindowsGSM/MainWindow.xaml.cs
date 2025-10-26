@@ -134,7 +134,7 @@ namespace WindowsGSM
         }
 
         public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
-        public static readonly int MAX_SERVER = 50;
+        public static readonly int MAX_SERVER = 256;
         public static readonly string WGSM_PATH = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
         public static readonly string DEFAULT_THEME = "Cyan";
 
