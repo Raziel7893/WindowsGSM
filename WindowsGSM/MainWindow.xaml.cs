@@ -1423,7 +1423,7 @@ namespace WindowsGSM
             string userDataPath = ServerPath.GetBin("steamcmd", "userData.txt");
             if (File.Exists(userDataPath))
             {
-                Process.Start(userDataPath);
+                Process.Start("notepad", userDataPath);
             }
         }
 
@@ -3020,17 +3020,17 @@ namespace WindowsGSM
         #region Top Bar Button
         private void Button_Website_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://windowsgsm.com/");
+            Process.Start(new ProcessStartInfo("https://windowsgsm.com/") { UseShellExecute = true });
         }
 
         private void Button_Discord_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://discord.gg/bGc7t2R");
+            Process.Start(new ProcessStartInfo("https://discord.gg/bGc7t2R") { UseShellExecute = true });
         }
 
         private void Button_Patreon_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://www.patreon.com/WindowsGSM/");
+            Process.Start(new ProcessStartInfo("https://www.patreon.com/WindowsGSM/") { UseShellExecute = true });
         }
 
         private void Button_Settings_Click(object sender, RoutedEventArgs e)
@@ -3243,12 +3243,12 @@ namespace WindowsGSM
         #region Menu - Help
         private void Help_OnlineDocumentation_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://docs.windowsgsm.com");
+            Process.Start(new ProcessStartInfo("https://docs.windowsgsm.com") { UseShellExecute = true });
         }
 
         private void Help_ReportIssue_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://github.com/WindowsGSM/WindowsGSM/issues");
+            Process.Start(new ProcessStartInfo("https://github.com/raziel7893/WindowsGSM/issues") { UseShellExecute = true });
         }
 
         private async void Help_SoftwareUpdates_Click(object sender, RoutedEventArgs e)
@@ -3381,7 +3381,7 @@ namespace WindowsGSM
 
             if (result == MessageDialogResult.Affirmative)
             {
-                Process.Start("https://www.patreon.com/WindowsGSM/");
+                Process.Start(new ProcessStartInfo("https://www.patreon.com/WindowsGSM/") { UseShellExecute = true });
             }
         }
         #endregion
@@ -4160,7 +4160,7 @@ namespace WindowsGSM
             string inviteLink = g_DiscordBot.GetInviteLink();
             if (!string.IsNullOrWhiteSpace(inviteLink))
             {
-                Process.Start(g_DiscordBot.GetInviteLink());
+                Process.Start(new ProcessStartInfo(g_DiscordBot.GetInviteLink()) { UseShellExecute = true });
             }
         }
         #endregion
