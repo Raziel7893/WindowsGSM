@@ -109,8 +109,8 @@
                   <mah:ToggleSwitch x:Name="MahAppSwitch_AutoUpdateAlert" Header="Auto Update Alert" Margin="0,20,0,20" Toggled="Switch_AutoUpdateAlert_Click"/>
                   <mah:ToggleSwitch x:Name="MahAppSwitch_RestartCrontabAlert" Header="Restart Crontab Alert" Margin="0,20,0,20" Toggled="Switch_RestartCrontabAlert_Click"/>
                   <mah:ToggleSwitch x:Name="MahAppSwitch_CrashAlert" Header="Crash Alert" Margin="20,20,0,20" Toggled="Switch_CrashAlert_Click"/>
-                  <mah:ToggleSwitch x:Name="MahAppSwitch_AutoIpUpdate" Header="Auto Ip Update" Margin="20,20,0,20" Toggled="Switch_AutoIpUpdate_Click"/>
-                  <mah:ToggleSwitch x:Name="MahAppSwitch_SkipUserSetup" Header="Skip User Setup" Margin="20,20,0,20" Toggled="Switch_SkipUserSetup_Click"/>
+                  <mah:ToggleSwitch x:Name="MahAppSwitch_AutoIpUpdate" Header="Publish Public Ip" Margin="20,20,0,20" Toggled="Switch_AutoIpUpdate_Click"/>
+                  <mah:ToggleSwitch x:Name="MahAppSwitch_SkipUserSetup" Header="Skip DiscordUser Setup" Margin="20,20,0,20" Toggled="Switch_SkipUserSetup_Click"/>
                </StackPanel>
             </ScrollViewer>
          </mah:Flyout>
