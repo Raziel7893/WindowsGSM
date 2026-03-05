@@ -40,21 +40,19 @@ namespace WindowsGSM.DiscordBot
             catch (Exception ex)
             {
                 Console.WriteLine($@"Error executing command: {ex.Message}");
-                await interaction.RespondAsync("Failed to execute command");
-                if(interaction.Type == InteractionType.ApplicationCommand)
+                if (!interaction.HasResponded)
                 {
-                    await interaction.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
+                    await interaction.RespondAsync("Failed to execute command", ephemeral: true);
                 }
             }
         }
 
-        private static Task SlashCommandExecuted(SlashCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+        private static async Task SlashCommandExecuted(SlashCommandInfo command, IInteractionContext context, IResult result)
         {
-            if (!arg3.IsSuccess)
+            if (!result.IsSuccess && !context.Interaction.HasResponded)
             {
-                arg2.Interaction.RespondAsync(arg3.ErrorReason, ephemeral: true);
+                await context.Interaction.RespondAsync(result.ErrorReason, ephemeral: true);
             }
-            return Task.CompletedTask;
         }
     }
 }

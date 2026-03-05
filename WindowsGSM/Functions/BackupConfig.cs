@@ -32,7 +32,12 @@ namespace WindowsGSM.Functions
 
         public void Open()
         {
-            Process.Start(ServerPath.GetServersConfigs(_serverId, "BackupConfig.cfg"));
+            var cfgPath = ServerPath.GetServersConfigs(_serverId, "BackupConfig.cfg");
+            if (!File.Exists(cfgPath))
+            {
+                throw new FileNotFoundException("BackupConfig.cfg not found.", cfgPath);
+            }
+            Process.Start(new ProcessStartInfo(cfgPath) { UseShellExecute = true });
         }
 
         private void LoadConfig()
@@ -46,8 +51,12 @@ namespace WindowsGSM.Functions
                     keyvalue[1] = keyvalue[1].Trim('\"');
                     switch (keyvalue[0])
                     {
-                        case SettingName.BackupLocation: BackupLocation = keyvalue[1]; break;
-                        case SettingName.MaximumBackups: MaximumBackups = int.TryParse(keyvalue[1], out int max) ? ((max <= 0) ? 1 : max) : DefaultMaximumBackups; break;
+                        case SettingName.BackupLocation:
+                            BackupLocation = keyvalue[1];
+                            break;
+                        case SettingName.MaximumBackups:
+                            MaximumBackups = int.TryParse(keyvalue[1], out int max) ? ((max <= 0) ? 1 : max) : DefaultMaximumBackups;
+                            break;
                     }
                 }
             }

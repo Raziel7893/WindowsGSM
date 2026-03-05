@@ -77,18 +77,18 @@ namespace WindowsGSM.Functions
                     }
                 }]
             }";
-
-            File.WriteAllText("debugWebhook_Content.log", json);
+            string logsDir = ServerPath.GetLogs();
+            File.WriteAllText(Path.Combine(logsDir, "debugWebhook_Content.log"), json);
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            File.WriteAllText("debugWebhook_ContentAfterConversion.log", content.ReadAsStringAsync().Result);
+            File.WriteAllText(Path.Combine(logsDir, "debugWebhook_ContentAfterConversion.log"), content.ReadAsStringAsync().Result);
 
             try
             {
                 var response = await _httpClient.PostAsync(_webhookUrl, content);
                 if (response.Content != null)
                 {
-                    File.WriteAllText("debugWebhook.log", response.Content.ReadAsStringAsync().Result);
+                    File.WriteAllText(Path.Combine(logsDir, "debugWebhook.log"), response.Content.ReadAsStringAsync().Result);
                     return true;
                 }
             }
