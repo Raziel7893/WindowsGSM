@@ -2319,84 +2319,167 @@ namespace WindowsGSM
                 return false;
             }
 
-            //Begin backup
             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Backuping;
             Log(server.ID, "Action: Backup" + notes);
             SetServerStatus(server, "Backuping");
 
-            //End All Running Process
             await EndAllRunningProcess(server.ID);
             await Task.Delay(1000);
 
-            string backupLocation = ServerPath.GetBackups(server.ID);
-            if (!Directory.Exists(backupLocation))
+            var backupConfig = new BackupConfig(server.ID);
+            string backupLocation = string.IsNullOrWhiteSpace(backupConfig.BackupLocation) ? ServerPath.GetBackups(server.ID) : backupConfig.BackupLocation;
+            try
+            {
+                Directory.CreateDirectory(backupLocation);
+            }
+            catch (Exception ex)
             {
                 _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                 Log(server.ID, "Server: Fail to backup");
-                Log(server.ID, "[ERROR] Backup location not found");
+                Log(server.ID, "[ERROR] Backup location not accessible: " + ex.Message);
                 SetServerStatus(server, "Stopped");
                 return false;
             }
 
-            string zipFileName = $"WGSM-Backup-Server-{server.ID}-";
+            string zipFileNamePrefix = $"WGSM-Backup-Server-{server.ID}-";
+            string zipFile = Path.Combine(backupLocation, $"{zipFileNamePrefix}{DateTime.Now.ToString("yyyyMMddHHmmss")}.zip");
 
-            // Remove the oldest Backup file
-            var backupConfig = new BackupConfig(server.ID);
-            foreach (var fi in new DirectoryInfo(backupLocation).GetFiles("*.zip").Where(x => x.Name.Contains(zipFileName)).OrderByDescending(x => x.LastWriteTime).Skip(backupConfig.MaximumBackups - 1))
+            try
             {
-                string ex = string.Empty;
+                int maxKeep = backupConfig.MaximumBackups <= 0 ? 1 : backupConfig.MaximumBackups;
+                var toRemove = new DirectoryInfo(backupLocation)
+                    .GetFiles("*.zip")
+                    .Where(x => x.Name.Contains(zipFileNamePrefix))
+                    .OrderByDescending(x => x.LastWriteTime)
+                    .Skip(maxKeep - 1)
+                    .ToList();
+
+                foreach (var f in toRemove)
+                {
+                    try { f.Delete(); } catch { }
+                }
+            }
+            catch { }
+            var saves = (backupConfig.SavesLocations ?? Enumerable.Empty<string>()).ToList();
+            if (saves.Count == 0)
+            {
+                string startPath = ServerPath.GetServers(server.ID);
+                string error = string.Empty;
                 await Task.Run(() =>
                 {
                     try
                     {
-                        fi.Delete();
+                        ZipFile.CreateFromDirectory(startPath, zipFile);
                     }
                     catch (Exception e)
                     {
-                        ex = e.Message;
+                        error = e.Message;
                     }
                 });
 
-                if (ex != string.Empty)
+                if (!string.IsNullOrEmpty(error))
                 {
                     _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                     Log(server.ID, "Server: Fail to backup");
-                    Log(server.ID, $"[ERROR] {ex}");
+                    Log(server.ID, $"[ERROR] {error}");
+                    SetServerStatus(server, "Stopped");
+                    return false;
+                }
+
+                _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                Log(server.ID, "Server: Backuped");
+                SetServerStatus(server, "Stopped");
+                return true;
+            }
+
+            string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string tempRoot = Path.Combine(Path.GetTempPath(), "WindowsGSM_Backup", server.ID, timestamp);
+            try
+            {
+                void DirectoryCopy(string src, string dst)
+                {
+                    var dir = new DirectoryInfo(src);
+                    if (!dir.Exists) return;
+                    Directory.CreateDirectory(dst);
+
+                    foreach (var file in dir.GetFiles())
+                    {
+                        file.CopyTo(Path.Combine(dst, file.Name), true);
+                    }
+
+                    foreach (var sub in dir.GetDirectories())
+                    {
+                        DirectoryCopy(sub.FullName, Path.Combine(dst, sub.Name));
+                    }
+                }
+                Directory.CreateDirectory(tempRoot);
+                var manifest = new List<string>();
+                for (int i = 0; i < saves.Count; i++)
+                {
+                    string original = saves[i] ?? string.Empty;
+                    original = Environment.ExpandEnvironmentVariables(original).Trim();
+                    manifest.Add($"{i}|{original}");
+
+                    string destSub = Path.Combine(tempRoot, $"save_{i}");
+                    if (string.IsNullOrWhiteSpace(original))
+                    {
+                        Directory.CreateDirectory(destSub);
+                        continue;
+                    }
+
+                    if (Directory.Exists(original))
+                    {
+                        DirectoryCopy(original, destSub);
+                    }
+                    else if (File.Exists(original))
+                    {
+                        Directory.CreateDirectory(destSub);
+                        File.Copy(original, Path.Combine(destSub, Path.GetFileName(original)), true);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(destSub);
+                    }
+                }
+                File.WriteAllLines(Path.Combine(tempRoot, "backup_manifest.txt"), manifest);
+                string error = string.Empty;
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        ZipFile.CreateFromDirectory(tempRoot, zipFile);
+                    }
+                    catch (Exception e)
+                    {
+                        error = e.Message;
+                    }
+                });
+                if (!string.IsNullOrEmpty(error))
+                {
+                    _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                    Log(server.ID, "Server: Fail to backup");
+                    Log(server.ID, $"[ERROR] {error}");
                     SetServerStatus(server, "Stopped");
                     return false;
                 }
             }
-
-            string startPath = ServerPath.GetServers(server.ID);
-            string zipFile = Path.Combine(ServerPath.GetBackups(server.ID), $"{zipFileName}{DateTime.Now.ToString("yyyyMMddHHmmss")}.zip");
-
-            string error = string.Empty;
-            await Task.Run(() =>
-            {
-                try
-                {
-                    ZipFile.CreateFromDirectory(startPath, zipFile);
-                }
-                catch (Exception e)
-                {
-                    error = e.Message;
-                }
-            });
-
-            if (error != string.Empty)
+            catch (Exception ex)
             {
                 _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                 Log(server.ID, "Server: Fail to backup");
-                Log(server.ID, $"[ERROR] {error}");
+                Log(server.ID, $"[ERROR] {ex.Message}");
                 SetServerStatus(server, "Stopped");
-
+                try { Directory.Delete(tempRoot, true); } catch { }
                 return false;
+            }
+            finally
+            {
+                try { Directory.Delete(tempRoot, true); } catch { }
             }
 
             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
             Log(server.ID, "Server: Backuped");
             SetServerStatus(server, "Stopped");
-
             return true;
         }
 
@@ -2407,8 +2490,10 @@ namespace WindowsGSM
                 return false;
             }
 
-            string backupLocation = ServerPath.GetBackups(server.ID);
+            var backupConfig = new BackupConfig(server.ID);
+            string backupLocation = string.IsNullOrWhiteSpace(backupConfig.BackupLocation) ? ServerPath.GetBackups(server.ID) : backupConfig.BackupLocation;
             string backupPath = Path.Combine(backupLocation, backupFile);
+
             if (!File.Exists(backupPath))
             {
                 Log(server.ID, "Server: Fail to restore backup");
@@ -2420,46 +2505,160 @@ namespace WindowsGSM
             Log(server.ID, "Action: Restore Backup");
             SetServerStatus(server, "Restoring");
 
-            string extractPath = ServerPath.GetServers(server.ID);
-            if (Directory.Exists(extractPath))
+            string tempRoot = Path.Combine(Path.GetTempPath(), "WindowsGSM_Backup_Restore", server.ID, DateTime.Now.ToString("yyyyMMddHHmmss"));
+            string error = string.Empty;
+
+            void DirectoryCopy(string src, string dst)
             {
-                string ex = string.Empty;
+                var dir = new DirectoryInfo(src);
+                if (!dir.Exists) return;
+                Directory.CreateDirectory(dst);
+
+                foreach (var file in dir.GetFiles())
+                {
+                    file.CopyTo(Path.Combine(dst, file.Name), true);
+                }
+
+                foreach (var sub in dir.GetDirectories())
+                {
+                    DirectoryCopy(sub.FullName, Path.Combine(dst, sub.Name));
+                }
+            }
+            try
+            {
+                Directory.CreateDirectory(tempRoot);
                 await Task.Run(() =>
                 {
                     try
                     {
-                        Directory.Delete(extractPath, true);
+                        ZipFile.ExtractToDirectory(backupPath, tempRoot);
                     }
                     catch (Exception e)
                     {
-                        ex = e.Message;
+                        error = e.Message;
                     }
                 });
 
-                if (ex != string.Empty)
+                if (!string.IsNullOrEmpty(error))
                 {
                     _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                     Log(server.ID, "Server: Fail to restore backup");
-                    Log(server.ID, $"[ERROR] {ex}");
+                    Log(server.ID, $"[ERROR] {error}");
                     SetServerStatus(server, "Stopped");
+                    try { Directory.Delete(tempRoot, true); } catch { }
                     return false;
                 }
+
+                string manifestPath = Path.Combine(tempRoot, "backup_manifest.txt");
+                if (!File.Exists(manifestPath))
+                {
+                    string extractPath = ServerPath.GetServers(server.ID);
+
+                    if (Directory.Exists(extractPath))
+                    {
+                        string ex = string.Empty;
+                        await Task.Run(() =>
+                        {
+                            try
+                            {
+                                Directory.Delete(extractPath, true);
+                            }
+                            catch (Exception e)
+                            {
+                                ex = e.Message;
+                            }
+                        });
+
+                        if (!string.IsNullOrEmpty(ex))
+                        {
+                            error = ex;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                        Log(server.ID, "Server: Fail to restore backup");
+                        Log(server.ID, $"[ERROR] {error}");
+                        SetServerStatus(server, "Stopped");
+                        try { Directory.Delete(tempRoot, true); } catch { }
+                        return false;
+                    }
+
+                    error = string.Empty;
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            ZipFile.ExtractToDirectory(backupPath, ServerPath.GetServers(server.ID));
+                        }
+                        catch (Exception e)
+                        {
+                            error = e.Message;
+                        }
+                    });
+
+                    try { Directory.Delete(tempRoot, true); } catch { }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                        Log(server.ID, "Server: Fail to restore backup");
+                        Log(server.ID, $"[ERROR] {error}");
+                        SetServerStatus(server, "Stopped");
+                        return false;
+                    }
+
+                    _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                    Log(server.ID, "Server: Restored");
+                    SetServerStatus(server, "Stopped");
+                    return true;
+                }
+
+                var manifestLines = File.ReadAllLines(manifestPath);
+                foreach (var line in manifestLines)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Split(new[] { '|' }, 2);
+                    if (parts.Length != 2) continue;
+                    if (!int.TryParse(parts[0], out int idx)) continue;
+                    string originalPath = parts[1];
+                    if (string.IsNullOrWhiteSpace(originalPath)) continue;
+
+                    originalPath = Environment.ExpandEnvironmentVariables(originalPath).Trim();
+                    string extractedSub = Path.Combine(tempRoot, $"save_{idx}");
+
+                    try
+                    {
+                        if (Directory.Exists(originalPath))
+                        {
+                            Directory.Delete(originalPath, true);
+                        }
+
+                        if (Directory.Exists(extractedSub))
+                        {
+                            DirectoryCopy(extractedSub, originalPath);
+                        }
+                        else if (File.Exists(extractedSub))
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(originalPath) ?? originalPath);
+                            File.Copy(extractedSub, originalPath, true);
+                        }
+                        else { }
+                    }
+                    catch (Exception e)
+                    {
+                        error = e.Message;
+                        break;
+                    }
+                }
+                try { Directory.Delete(tempRoot, true); } catch { }
             }
-
-            string error = string.Empty;
-            await Task.Run(() =>
+            catch (Exception ex)
             {
-                try
-                {
-                    ZipFile.ExtractToDirectory(backupPath, extractPath);
-                }
-                catch (Exception e)
-                {
-                    error = e.Message;
-                }
-            });
-
-            if (error != string.Empty)
+                error = ex.Message;
+            }
+            if (!string.IsNullOrEmpty(error))
             {
                 _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                 Log(server.ID, "Server: Fail to restore backup");
@@ -2467,11 +2666,9 @@ namespace WindowsGSM
                 SetServerStatus(server, "Stopped");
                 return false;
             }
-
             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
             Log(server.ID, "Server: Restored");
             SetServerStatus(server, "Stopped");
-
             return true;
         }
 
