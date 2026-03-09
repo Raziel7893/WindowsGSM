@@ -973,7 +973,7 @@ namespace WindowsGSM
         {
             while (true)
             {
-                await Task.Delay(10);
+                await Task.Delay(100);
                 var row = (ServerTable)ServerGrid.SelectedItem;
                 if (row != null)
                 {
@@ -2952,7 +2952,7 @@ namespace WindowsGSM
 
         private async void StartQuery(ServerTable server)
         {
-            if (string.IsNullOrWhiteSpace(server.IP) || string.IsNullOrWhiteSpace(server.QueryPort)) { return; }
+            if (string.IsNullOrWhiteSpace(server.IP)) { return; }
 
             // Check the server support Query Method
             dynamic gameServer = GameServer.Data.Class.Get(server.Game, pluginList: PluginsList);
@@ -2970,16 +2970,19 @@ namespace WindowsGSM
                     break;
                 }
 
-                if (!IsValidIPAddress(server.IP) || !IsValidPort(server.QueryPort))
+                dynamic query = gameServer.QueryMethod;
+                string portString = (query is EOS) ? server.Port : server.QueryPort;
+
+                if (!IsValidIPAddress(server.IP) || !IsValidPort(portString))
                 {
+                    await Task.Delay(5000);
                     continue;
                 }
 
-
-                var query = gameServer.QueryMethod as QueryTemplate;
-                query.SetAddressPort(server.IP, int.Parse(server.QueryPort));
                 try
                 {
+                    query.SetAddressPort(server.IP, int.Parse(portString));
+
                     string players = await query.GetPlayersAndMaxPlayers();
 
                     if (players != null)
@@ -2999,19 +3002,26 @@ namespace WindowsGSM
                         }
                     }
                 }
-                catch { }
+                catch
+                {
+                    // keep existing behavior (swallow); optionally log
+                }
+
                 try
                 {
-                    var playerData = await query.GetPlayersData();
-                    if(playerData != null && playerData.Count != 0)
+                    if (query is QueryTemplate templateQuery)
                     {
-                        if (int.TryParse(server.ID, out var serverId))
+                        var playerData = await templateQuery.GetPlayersData();
+                        if (playerData != null && playerData.Count != 0)
                         {
                             server.PlayerList = playerData;
                         }
                     }
                 }
-                catch { }
+                catch
+                {
+                    // keep existing behavior (swallow); optionally log
+                }
 
                 await Task.Delay(5000);
             }
