@@ -2981,6 +2981,13 @@ namespace WindowsGSM
 
                 try
                 {
+                    string ip = server.IP;
+                    //map "bind to all" ip to localhost
+                    if(ip.Contains("0.0.0.0"))
+                    {
+                        ip = "127.0.0.1";
+                    }
+
                     query.SetAddressPort(server.IP, int.Parse(portString));
 
                     string players = await query.GetPlayersAndMaxPlayers();
