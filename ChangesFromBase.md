@@ -1,0 +1,22 @@
+- Updated to [Dotnet8](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-8.0.16-windows-x64-installer)
+- Extended Crontab Config
+  - Crontabs can now also Execute Windows commands and send Server Console Commands by adding *.csv files to the server config folder (servers\\%ServerID%\\configs\\Crontab) (or click Browse => Server Configs in WindowsGSM while the server is marked, then create the folder Crontab if not existing.)
+  - https://github.com/Raziel7893/WindowsGSM/blob/master/Crontab.md
+- Extended Backup Config
+  - BackupConfig now supports individual/multiple save locations via config
+  - File Will be Created After starting a Server the First time with backup enabled
+  - It can be found by clicking Browse => Server Configs => BackupConfig.cfg
+  - Hint: Do not modify WindowsGSM.cfg manually, everything is changable via the Programm itself, the Syntax of that file is quite easy to destry and your server will disappear from wgsm if you mess it up 
+- Send Join Codes via Webhook
+  - Will send the joincode text aslong as the autostart or autorestart alert is activated in the webhook settings
+  - EMBEDD CONSOLE NEEDS TO BE ENABLED 
+- Public IP change Webhook
+  - Activate in the Webhook settings
+  - Will check your public IP every 2 min via https://ipinfo.io/ip and send out a Webhook if it changed
+  - Will also change other Webhooks to include your actual public IP instead of your local one set in WindowsGSM as ServerIP
+- DiscordBot SendR
+  - Send a Console Command and try to gather the response,  Needs a working Embedded Console
+- Customize Discord BOT
+  - Add posibility to change Bot name and manually way to change the donation based avatar from wgsm to a custom one.
+  - Just put an avatar.png inside configs\discordbot\avatar.png
+  - Also added a switch to just stop wgsm to change the profile of the Webhook user
