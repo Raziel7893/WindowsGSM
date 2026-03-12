@@ -1,7 +1,7 @@
 - Updated to [Dotnet8](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-8.0.16-windows-x64-installer)
 - Extended Crontab Config
   - Crontabs can now also Execute Windows commands and send Server Console Commands by adding *.csv files to the server config folder (servers\\%ServerID%\\configs\\Crontab) (or click Browse => Server Configs in WindowsGSM while the server is marked, then create the folder Crontab if not existing.)
-  - https://github.com/Raziel7893/WindowsGSM/blob/master/Crontab.md
+  - HowTo and Examples: https://github.com/Raziel7893/WindowsGSM/blob/master/Crontab.md
 - Extended Backup Config
   - BackupConfig now supports individual/multiple save locations via config
   - File Will be Created After starting a Server the First time with backup enabled
