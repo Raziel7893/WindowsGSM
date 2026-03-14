@@ -19,23 +19,6 @@ namespace WindowsGSM.Functions
         public string Defaultmap { get; set; }
         public string Maxplayers { get; set; }
         public List<PlayerData> PlayerList { get; set; }
-        public string Uptime 
-        { 
-            get
-            {
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(PID) && int.TryParse(PID, out int pid))
-                    {
-                        var time = DateTime.Now - Process.GetProcessById(pid).StartTime;
-                        int numberOfDay = (int)time.TotalDays;
-                        return $"{numberOfDay} Day{(numberOfDay > 1 ? "s" : string.Empty)}, {time.Hours:D2}:{time.Minutes:D2}";
-                    }
-                }
-                catch { }
-
-                return string.Empty;
-            }
-        }
+        public string Uptime { get; set; }
     }
 }
