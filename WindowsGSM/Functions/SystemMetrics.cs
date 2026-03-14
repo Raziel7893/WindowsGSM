@@ -113,37 +113,57 @@ namespace WindowsGSM.Functions
 
         private string GetMemoryType()
         {
-            const string RAM_MEMORY_TYPE = "MemoryType";
-            var mbo = new ManagementObjectSearcher($"SELECT {RAM_MEMORY_TYPE} FROM Win32_PhysicalMemory").Get();
-            switch (mbo.Cast<ManagementBaseObject>().Select(c => int.Parse(c[RAM_MEMORY_TYPE].ToString())).FirstOrDefault())
+            try
             {
-                case 1: return "Other";
-                case 2: return "DRAM";
-                case 3: return "Synchronous DRAM";
-                case 4: return "Cache DRAM";
-                case 5: return "EDO";
-                case 6: return "EDRAM";
-                case 7: return "VRAM";
-                case 8: return "SRAM";
-                case 9: return "RAM";
-                case 10: return "ROM";
-                case 11: return "Flash";
-                case 12: return "EEPROM";
-                case 13: return "FEPROM";
-                case 14: return "EPROM";
-                case 15: return "CDRAM";
-                case 16: return "3DRAM";
-                case 17: return "SDRAM";
-                case 18: return "SGRAM";
-                case 19: return "RDRAM";
-                case 20: return "DDR";
-                case 21: return "DDR2";
-                case 22: return "DDR2 FB-DIMM";
-                case 23: return "Undefined 23";
-                case 24: return "DDR3";
-                case 25: return "Undefined 25";
-                default: return "Unknown";
+                var mbo = new ManagementObjectSearcher("SELECT MemoryType, SMBIOSMemoryType FROM Win32_PhysicalMemory").Get();
+                foreach (var mo in mbo)
+                {
+                    switch (int.Parse(mo["MemoryType"].ToString()))
+                    {
+                        case 1: return "Other";
+                        case 2: return "DRAM";
+                        case 3: return "Synchronous DRAM";
+                        case 4: return "Cache DRAM";
+                        case 5: return "EDO";
+                        case 6: return "EDRAM";
+                        case 7: return "VRAM";
+                        case 8: return "SRAM";
+                        case 9: return "RAM";
+                        case 10: return "ROM";
+                        case 11: return "Flash";
+                        case 12: return "EEPROM";
+                        case 13: return "FEPROM";
+                        case 14: return "EPROM";
+                        case 15: return "CDRAM";
+                        case 16: return "3DRAM";
+                        case 17: return "SDRAM";
+                        case 18: return "SGRAM";
+                        case 19: return "RDRAM";
+                        case 20: return "DDR";
+                        case 21: return "DDR2";
+                        case 22: return "DDR2 FB-DIMM";
+                        case 23: return "Undefined 23";
+                        case 24: return "DDR3";
+                        case 25: return "FBD2";
+                        case 26: return "DDR4";
+                        case 34: return "DDR5";
+                    }
+
+                    if (mo["SMBIOSMemoryType"] != null && uint.TryParse(mo["SMBIOSMemoryType"].ToString(), out uint smbiosType))
+                    {
+                        switch (smbiosType)
+                        {
+                            case 0x1A: return "DDR4";
+                            case 0x22: return "DDR5";
+                        }
+                    }
+                }
             }
+            catch
+            {
+                // Fallback or ignore
+            }
+            return "Unknown";
         }
     }
 }

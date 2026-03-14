@@ -163,61 +163,56 @@ namespace WindowsGSM
             source.AddHook(new HwndSourceHook(HandleMessages));
         }
 
-
         protected override async void OnClosing(CancelEventArgs e)
         {
-            // Don't overwrite cancellation for close
-            if (e.Cancel == false)
+            if (e.Cancel)
             {
-                // #2409: don't close window if there is a dialog still open
-                var dialog = await this.GetCurrentDialogAsync<BaseMetroDialog>();
-                e.Cancel = dialog != null && (this.ShowDialogsOverTitleBar || !dialog.DialogSettings.OwnerCanCloseWithDialog);
-
-                //add a close confirmation
-                const string message = "Are you sure that you would like to Exit and stop all servers?";
-                const string caption = "Exit WindowsGSM";
-                var result = MessageBox.Show(message, caption,
-                                             MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.No)
-                    e.Cancel = true;
+                return;
             }
 
-            if (e.Cancel == false)
-                StoppAllServers();
+            var dialog = await this.GetCurrentDialogAsync<BaseMetroDialog>();
+            if (dialog != null && (ShowDialogsOverTitleBar || !dialog.DialogSettings.OwnerCanCloseWithDialog))
+            {
+                e.Cancel = true;
+                return;
+            }
 
-            base.OnClosing(e);
+            var runningServers = ServerGrid.Items.Cast<ServerTable>()
+                                .Count(server => GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started);
+
+            if (runningServers > 0)
+            {
+                string message = $"{runningServers} server(s) are currently running and will be stopped.\nAre you sure you want to continue?";
+                const string caption = "Servers Running";
+                var result = MessageBox.Show(this, message, caption, MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
+            e.Cancel = true;
+            // Hide();
+            await StoppAllServers();
+            System.Windows.Application.Current.Shutdown();
         }
 
-        public void StoppAllServers ()
+        public async Task StoppAllServers()
         {
+            var stopTasks = new List<Task>();
             foreach (var server in ServerGrid.Items.Cast<ServerTable>().ToList())
             {
                 if (GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started)
                 {
-                    GameServer_Stop(server);
+                    stopTasks.Add(GameServer_Stop(server));
                 }
             }
-            int secCounter = 0;
-            int processesRunning = 0;
-            //wait for all servers to stop
-            while (secCounter < 30)
+
+            if (stopTasks.Any())
             {
-                Thread.Sleep(1000);// just wait a fixed 30 sec
-                processesRunning = 0;
-                secCounter++;
-                foreach (var server in ServerGrid.Items.Cast<ServerTable>().ToList())
-                {
-                    Process p = null;
-                    try
-                    {
-                        p = Process.GetProcessById(int.Parse(server.PID)); // will fail wenn the process is completly closed by now
-                        if (p != null && !p.HasExited)
-                            processesRunning++;
-                    }
-                    catch (Exception){ }
-                }
-                if (processesRunning == 0) break;
+                await Task.WhenAll(stopTasks);
             }
         }
 
@@ -762,9 +757,11 @@ namespace WindowsGSM
         public void LoadServerTable()
         {
             string[] livePlayerData = new string[MAX_SERVER + 1];
+            string[] liveUptimeData = new string[MAX_SERVER + 1];
             foreach (ServerTable item in ServerGrid.Items)
             {
                 livePlayerData[int.Parse(item.ID)] = item.Maxplayers;
+                liveUptimeData[int.Parse(item.ID)] = item.Uptime;
             }
 
             var selectedrow = (ServerTable)ServerGrid.SelectedItem;
@@ -849,7 +846,8 @@ namespace WindowsGSM
                         Port = serverConfig.ServerPort,
                         QueryPort = serverConfig.ServerQueryPort,
                         Defaultmap = serverConfig.ServerMap,
-                        Maxplayers = (GetServerMetadata(i).ServerStatus != ServerStatus.Started) ? serverConfig.ServerMaxPlayer : livePlayerData[i]
+                        Maxplayers = (GetServerMetadata(i).ServerStatus != ServerStatus.Started) ? serverConfig.ServerMaxPlayer : livePlayerData[i],
+                        Uptime = liveUptimeData[i]
                     };
 
                     SaveServerConfigToServerMetadata(i, serverConfig);
@@ -1037,9 +1035,31 @@ namespace WindowsGSM
 
                 dashboard_players_count.Content = GetActivePlayers().ToString();
 
+                foreach (ServerTable server in ServerGrid.Items)
+                {
+                    var serverMetadata = GetServerMetadata(server.ID);
+                    if (serverMetadata.ServerStatus == ServerStatus.Started && serverMetadata.Process != null && !serverMetadata.Process.HasExited)
+                    {
+                        try
+                        {
+                            var uptime = DateTime.Now - serverMetadata.Process.StartTime;
+                            server.Uptime = $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m {uptime.Seconds}s";
+                        }
+                        catch
+                        {
+                            server.Uptime = "N/A";
+                        }
+                    }
+                    else
+                    {
+                        server.Uptime = string.Empty;
+                    }
+                }
+                ServerGrid.Items.Refresh();
+
                 Refresh_DashBoard_LiveChart();
 
-                await Task.Delay(2000);
+                await Task.Delay(1000);
             }
         }
 
