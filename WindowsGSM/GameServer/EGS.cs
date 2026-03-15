@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WindowsGSM.Functions;
@@ -56,13 +57,24 @@ namespace WindowsGSM.GameServer
                 Notice = $"default {Path.GetFileName(configPath)} not found ({configPath})";
             }
 
+            StringBuilder sb = new StringBuilder("-batchmode -nographics ");
+            sb.Append(serverData.ServerParam);
+            if(serverData.EmbedConsole)
+            {
+                sb.Append(" -logFile -");
+            }
+            else
+            {
+                sb.Append(" -logFile serverConsole.log");
+            }
+
             var p = new Process
             {
                 StartInfo =
                 {
                     WorkingDirectory = ServerPath.GetServersServerFiles(serverData.ServerID),
                     FileName = exePath,
-                    Arguments = "-batchmode -nographics " + serverData.ServerParam + "-logFile serverconsole.log",
+                    Arguments = sb.ToString(),
                     WindowStyle = ProcessWindowStyle.Minimized,
                     UseShellExecute = false
                 },
