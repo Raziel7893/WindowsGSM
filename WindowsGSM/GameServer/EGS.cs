@@ -20,7 +20,7 @@ namespace WindowsGSM.GameServer
         public string QueryPort = "30001";
         public string Defaultmap = "DediGame";
         public string Maxplayers = "8";
-        public string Additional = "-dedicated dedicated.yaml -logFile";
+        public string Additional = "-dedicated dedicated.yaml";
 
         public override string AppId => "530870";
 
@@ -62,7 +62,7 @@ namespace WindowsGSM.GameServer
                 {
                     WorkingDirectory = ServerPath.GetServersServerFiles(serverData.ServerID),
                     FileName = exePath,
-                    Arguments = "-batchmode -nographics " + serverData.ServerParam,
+                    Arguments = "-batchmode -nographics " + serverData.ServerParam + "-logFile serverconsole.log",
                     WindowStyle = ProcessWindowStyle.Minimized,
                     UseShellExecute = false
                 },
