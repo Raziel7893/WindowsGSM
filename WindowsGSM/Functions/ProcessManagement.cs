@@ -20,6 +20,9 @@ namespace WindowsGSM.Functions
         static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate HandlerRoutine, bool Add);
         delegate Boolean ConsoleCtrlDelegate(uint CtrlType);
 
+        //If you use that in plugins, make sure to mention that the users NEED to use WGSM versions based on this fork
+        //sends a gracefull shutdown signal to the given process.
+        //this should work for most if not all servers to close cleanly with hopefully a save before (most servers implement that to be compatible with OS reboots and stuff)
         public static bool SendStopSignal(Process p)
         {
             if (AttachConsole((uint)p.Id))
@@ -41,6 +44,7 @@ namespace WindowsGSM.Functions
             return false;
         }
 
+        //Try to gracefully shutdown the process and kills it if it fails to do so
         public static void StopProcess(Process p)
         {
             if (!SendStopSignal(p))
