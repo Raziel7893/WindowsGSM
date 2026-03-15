@@ -1,20 +1,18 @@
-﻿using System.Threading.Tasks;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using WindowsGSM.Functions;
+using WindowsGSM.GameServer.Engine;
 
 namespace WindowsGSM.GameServer
 {
-    class EGS
+    class EGS :SteamCMDAgent
     {
-        private readonly Functions.ServerConfig _serverData;
-
-        public string Error;
-        public string Notice;
-
         public const string FullName = "Empyrion - Galactic Survival Dedicated Server";
-        public string StartPath = "EmpyrionLauncher.exe";
-        public bool AllowsEmbedConsole = false;
+        public override string StartPath => "DedicatedServer\\EmpyrionDedicated.exe";
+        public bool AllowsEmbedConsole = true;
         public int PortIncrements = 5;
         public dynamic QueryMethod = null;
 
@@ -22,61 +20,95 @@ namespace WindowsGSM.GameServer
         public string QueryPort = "30001";
         public string Defaultmap = "DediGame";
         public string Maxplayers = "8";
-        public string Additional = "-dedicated dedicated.yaml";
+        public string Additional = "-dedicated dedicated.yaml -logFile";
 
-        public string AppId = "530870";
+        public override string AppId => "530870";
 
-        public EGS(Functions.ServerConfig serverData)
-        {
-            _serverData = serverData;
-        }
+        public EGS(ServerConfig serverData) : base(serverData) => base.serverData = serverData;
 
         public async void CreateServerCFG()
         {
-            string configPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "dedicated.yaml");
-            if (await Functions.Github.DownloadGameServerConfig(configPath, _serverData.ServerGame))
+            string configPath = Functions.ServerPath.GetServersServerFiles(serverData.ServerID, "dedicated.yaml");
+            if (await Functions.Github.DownloadGameServerConfig(configPath, serverData.ServerGame))
             {
                 string configText = File.ReadAllText(configPath);
-                configText = configText.Replace("{{Srv_Port}}", _serverData.ServerPort);
-                configText = configText.Replace("{{Srv_Name}}", _serverData.ServerName);
-                configText = configText.Replace("{{Srv_Password}}", _serverData.GetRCONPassword());
-                configText = configText.Replace("{{Srv_MaxPlayers}}", _serverData.ServerMaxPlayer);
-                configText = configText.Replace("{{Tel_Port}}", (int.Parse(_serverData.ServerPort) + 4).ToString());
+                configText = configText.Replace("{{Srv_Port}}", serverData.ServerPort);
+                configText = configText.Replace("{{Srv_Name}}", serverData.ServerName);
+                configText = configText.Replace("{{Srv_Password}}", serverData.GetRCONPassword());
+                configText = configText.Replace("{{Srv_MaxPlayers}}", serverData.ServerMaxPlayer);
+                configText = configText.Replace("{{Tel_Port}}", (int.Parse(serverData.ServerPort) + 4).ToString());
                 File.WriteAllText(configPath, configText);
             }
         }
 
         public async Task<Process> Start()
         {
-            string exePath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath);
+            string exePath = Functions.ServerPath.GetServersServerFiles(serverData.ServerID, StartPath);
             if (!File.Exists(exePath))
             {
                 Error = $"{Path.GetFileName(exePath)} not found ({exePath})";
                 return null;
             }
 
-            string configPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "dedicated.yaml");
+            string configPath = Functions.ServerPath.GetServersServerFiles(serverData.ServerID, "dedicated.yaml");
             if (!File.Exists(configPath))
             {
-                Notice = $"{Path.GetFileName(configPath)} not found ({configPath})";
+                Notice = $"default {Path.GetFileName(configPath)} not found ({configPath})";
             }
 
-            Process p = new Process
+            var p = new Process
             {
                 StartInfo =
                 {
-                    WorkingDirectory = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID),
+                    WorkingDirectory = ServerPath.GetServersServerFiles(serverData.ServerID),
                     FileName = exePath,
-                    Arguments = "-startDedi " + _serverData.ServerParam,
-                    CreateNoWindow = true,
+                    Arguments = "-batchmode -nographics " + serverData.ServerParam,
                     WindowStyle = ProcessWindowStyle.Minimized,
                     UseShellExecute = false
                 },
                 EnableRaisingEvents = true
             };
-            p.Start();
-            
-            // Search UnityCrashHandler64.exe and return its commandline and get the dedicated process
+
+            // Set up Redirect Input and Output to WindowsGSM Console if EmbedConsole is on
+            if (serverData.EmbedConsole)
+            {
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.RedirectStandardInput = true;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.RedirectStandardError = true;
+                var serverConsole = new ServerConsole(serverData.ServerID);
+                p.OutputDataReceived += serverConsole.AddOutput;
+                p.ErrorDataReceived += serverConsole.AddOutput;
+
+                // Start Process
+                try
+                {
+                    p.Start();
+                }
+                catch (Exception e)
+                {
+                    Error = e.Message;
+                    return null; // return null if fail to start
+                }
+
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+                return p;
+            }
+
+            // Start Process
+            try
+            {
+                p.Start();
+                return p;
+            }
+            catch (Exception e)
+            {
+                Error = e.Message;
+                return null; // return null if fail to start
+            }
+
+            /*// Search UnityCrashHandler64.exe and return its commandline and get the dedicated process
             string crashHandler = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "DedicatedServer", "UnityCrashHandler64.exe");
             await Task.Delay(3000);
             for (int i = 0; i < 5; i++)
@@ -103,54 +135,15 @@ namespace WindowsGSM.GameServer
             }
 
             Error = "Fail to find UnityCrashHandler64.exe";
-            return null;
+            */
         }
 
         public async Task Stop(Process p)
         {
             await Task.Run(() =>
             {
-                p.Kill();
+                ProcessManagement.StopProcess(p);
             });
-        }
-
-        public async Task<Process> Install()
-        {
-            var steamCMD = new Installer.SteamCMD();
-            Process p = await steamCMD.Install(_serverData.ServerID, string.Empty, AppId);
-            Error = steamCMD.Error;
-
-            return p;
-        }
-
-        public async Task<Process> Update(bool validate = false, string custom = null)
-        {
-            var (p, error) = await Installer.SteamCMD.UpdateEx(_serverData.ServerID, AppId, validate, custom: custom);
-            Error = error;
-            return p;
-        }
-
-        public bool IsInstallValid()
-        {
-            return File.Exists(Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
-        }
-
-        public bool IsImportValid(string path)
-        {
-            Error = $"Invalid Path! Fail to find {Path.GetFileName(StartPath)}";
-            return File.Exists(Path.Combine(path, StartPath));
-        }
-
-        public string GetLocalBuild()
-        {
-            var steamCMD = new Installer.SteamCMD();
-            return steamCMD.GetLocalBuild(_serverData.ServerID, AppId);
-        }
-
-        public async Task<string> GetRemoteBuild()
-        {
-            var steamCMD = new Installer.SteamCMD();
-            return await steamCMD.GetRemoteBuild(AppId);
         }
     }
 }
