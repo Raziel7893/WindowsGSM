@@ -1,9 +1,9 @@
 using Discord;
+using Discord.WebSocket;
 using System;
-using System.Windows;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord.WebSocket;
+using System.Windows;
 using WindowsGSM.Functions;
 
 namespace WindowsGSM.DiscordBot
@@ -132,26 +132,43 @@ namespace WindowsGSM.DiscordBot
             {
                 MainWindow WindowsGSM = (MainWindow)Application.Current.MainWindow;
                 var serverList = WindowsGSM.GetServerList();
+
+                int stoppedCount = 0;
+                int skippedCount = 0;
+
                 foreach (var server in serverList)
                 {
-                    if (WindowsGSM.IsServerExist(server.Item1))
+                    if (!WindowsGSM.IsServerExist(server.Item1))
+                        continue;
+
+                    var serverStatus = WindowsGSM.GetServerStatus(server.Item1);
+
+                    // skip stopping
+                    if (serverStatus == MainWindow.ServerStatus.Stopped)
                     {
-                        MainWindow.ServerStatus serverStatus = WindowsGSM.GetServerStatus(server.Item1);
-                        if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting)
-                        {
-                            bool started = await WindowsGSM.StopServerById(server.Item1, interaction.User.Id.ToString(), interaction.User.Username);
-                            await interaction.FollowupAsync($"Server (ID: {server.Item1}) {(started ? "Stopped" : "Fail to Stop")}.");
-                        }
-                        else if (serverStatus == MainWindow.ServerStatus.Stopped)
-                        {
-                            await interaction.FollowupAsync($"Server (ID: {server.Item1}) already Stopped.");
-                        }
-                        else
-                        {
-                            await interaction.FollowupAsync($"Server (ID: {server.Item1}) currently in {serverStatus.ToString()} state, not able to stop.");
-                        }
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Stop server
+                    if (serverStatus == MainWindow.ServerStatus.Started ||
+                        serverStatus == MainWindow.ServerStatus.Starting)
+                    {
+                        bool success = await WindowsGSM.StopServerById(
+                            server.Item1,
+                            interaction.User.Id.ToString(),
+                            interaction.User.Username
+                        );
+
+                        if (success)
+                            stoppedCount++;
                     }
                 }
+
+                // Answer command
+                await interaction.FollowupAsync(
+                    $"StopAll: ✅ {stoppedCount} stopped | ⏭️ {skippedCount} already stopped"
+                );
             });
         }
 

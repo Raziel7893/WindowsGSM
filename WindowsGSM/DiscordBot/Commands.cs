@@ -246,26 +246,43 @@ namespace WindowsGSM.DiscordBot
             {
                 MainWindow WindowsGSM = (MainWindow)Application.Current.MainWindow;
                 var serverList = WindowsGSM.GetServerList();
+
+                int stoppedCount = 0;
+                int skippedCount = 0;
+
                 foreach (var server in serverList)
                 {
-                    if (WindowsGSM.IsServerExist(server.Item1))
+                    if (!WindowsGSM.IsServerExist(server.Item1))
+                        continue;
+
+                    var serverStatus = WindowsGSM.GetServerStatus(server.Item1);
+
+                    // skip stopping
+                    if (serverStatus == MainWindow.ServerStatus.Stopped)
                     {
-                        MainWindow.ServerStatus serverStatus = WindowsGSM.GetServerStatus(server.Item1);
-                        if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting)
-                        {
-                            bool started = await WindowsGSM.StopServerById(server.Item1, message.Author.Id.ToString(), message.Author.Username);
-                            await message.Channel.SendMessageAsync($"Server (ID: {server.Item1}) {(started ? "Stopped" : "Fail to Stop")}.");
-                        }
-                        else if (serverStatus == MainWindow.ServerStatus.Stopped)
-                        {
-                            await message.Channel.SendMessageAsync($"Server (ID: {server.Item1}) already Stopped.");
-                        }
-                        else
-                        {
-                            await message.Channel.SendMessageAsync($"Server (ID: {server.Item1}) currently in {serverStatus.ToString()} state, not able to stop.");
-                        }
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Stop server
+                    if (serverStatus == MainWindow.ServerStatus.Started ||
+                        serverStatus == MainWindow.ServerStatus.Starting)
+                    {
+                        bool success = await WindowsGSM.StopServerById(
+                            server.Item1,
+                            message.Author.Id.ToString(),
+                            message.Author.Username
+                        );
+
+                        if (success)
+                            stoppedCount++;
                     }
                 }
+
+                // Answer command
+                await message.Channel.SendMessageAsync(
+                    $"StopAll: ✅ {stoppedCount} stopped | ⏭️ {skippedCount} already stopped"
+                );
             });
         }
 
