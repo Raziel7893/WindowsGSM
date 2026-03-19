@@ -23,7 +23,7 @@ namespace WindowsGSM.DiscordBot
 		public static string GetCommandsList()
 		{
 			string prefix = GetBotPrefix();
-			return $"{prefix}wgsm check\n{prefix}wgsm list\n{prefix}wgsm start <SERVERID>\n{prefix}wgsm stop <SERVERID>\n{prefix}wgsm restart <SERVERID>\n{prefix}wgsm update <SERVERID>\n{prefix}wgsm send <SERVERID> <COMMAND>\n{prefix}wgsm backup <SERVERID>\n{prefix}wgsm stats";
+			return $"{prefix}wgsm check\n{prefix}wgsm list\n{prefix}wgsm start <SERVERID>\n{prefix}wgsm stop <SERVERID>\n{prefix}wgsm stopall\n{prefix}wgsm restart <SERVERID>\n{prefix}wgsm update <SERVERID>\n{prefix}wgsm send <SERVERID> <COMMAND>\n{prefix}wgsm backup <SERVERID>\n{prefix}wgsm stats\n{prefix}wgsm send <SERVERIID> <COMMAND_TO_SEND>\n{prefix}wgsm sendr <SERVERIID> <COMMAND_TO_SEND>";
 		}
 
 		public static string GetBotPrefix()
