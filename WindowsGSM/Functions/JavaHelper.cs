@@ -30,7 +30,8 @@ namespace WindowsGSM.Functions
             return FindNewestJavaExecutableAbsolutePath();
         }
 
-        public static async Task<JREDownloadTaskResult> DownloadJREToServer(string serverID)
+        //just to be compatible with old wgsm it seems
+        public static async Task<JREDownloadTaskResult> DownloadJREToServer(string serverID, string version = "22")
         {
             string serverFilesPath = Functions.ServerPath.GetServersServerFiles(serverID);
             
