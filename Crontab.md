@@ -4,6 +4,7 @@ They can now be configured by adding *.csv files to the server config folder (se
 
 You can Add multiple lines to that csv file, and also add multiple files. WGSM will try to read all *.csv files in that folder.
 Comments can be added by 2 leading slashes "//" as first characters in that line
+
 ### File Structure
 > CrontabExpression;Type;Command;Arguments
 
@@ -14,14 +15,25 @@ Comments can be added by 2 leading slashes "//" as first characters in that line
 2. Example for sending Commands:
 > 5 * * * *;ServerConsoleCommand;cheat serverchat this message will occure every hour
 
-3. Example for restart with message Commands:
+3. Example for sending Commands:
+> 5 * * * *;RconCommand;say this message will occure every hour
+
+4. Example for restart with message Commands:
 > 5 6 * * *;ServerConsoleCommand;cheat serverchat server will restart in 5 mins
 > 9 6 * * *;ServerConsoleCommand;cheat saveworld
 > 10 6 * * *;restart
 
-4. Example for additional Restarts besides the Gui defined one:
+5. Example for additional Restarts besides the Gui defined one:
 > * 2 * * *;restart
 
+### RCON Support
+Rcon needs to be configured beforehand, and windowsgsm needs to be closed at that point.
+* Find the file servers\\%ServerID%\\configs\\WindowsGSM.cfg
+* Find the RCON entries at the end (you need to have the new wgsm version started once for it to have been created)
+* Set the Port, IP and Password according to your server. 
+  * It can be that 127.0.0.1 does not work, at least for Minecraft it only listens for the actual local IP wgsm set as ServerIP (look at the beginning of the file to find it) 
+  * For Plugins using the random Password function wgsm will preset that itself
+	
 ### Notes 
 Restart WGSM after creating or changing the file or restart the gameserver, it should reload it aswell
 

@@ -35,7 +35,10 @@ namespace WindowsGSM.Functions
             public const string AutoUpdateAlert = "autoupdatealert";
             public const string AutoIpUpdateAlert = "autoipupdatealert";
             public const string SkipUserSetup = "skipusersetup";
-            
+            public const string RconIp = "rconip";
+            public const string RconPort = "rconport";
+            public const string RconPassword = "rconpassword";
+
             public const string RestartCrontabAlert = "restartcrontabalert";
             public const string CrashAlert = "crashalert";
             public const string CPUPriority = "cpupriority";
@@ -75,6 +78,9 @@ namespace WindowsGSM.Functions
         public string CPUPriority;
         public string CPUAffinity;
         public bool AutoScroll;
+        public string RconPort;
+        public string RconIp;
+        public string RconPassword;
 
         public ServerConfig(string serverid)
         {
@@ -149,6 +155,9 @@ namespace WindowsGSM.Functions
                             case SettingName.CPUPriority: CPUPriority = keyvalue[1]; break;
                             case SettingName.CPUAffinity: CPUAffinity = keyvalue[1]; break;
                             case SettingName.AutoScroll: AutoScroll = keyvalue[1] == "1"; break;
+                            case SettingName.RconIp: RconIp = keyvalue[1]; break;
+                            case SettingName.RconPort: RconPort = keyvalue[1]; break;
+                            case SettingName.RconPassword: RconPassword = keyvalue[1]; break;
                         }
                     }
                 }
@@ -189,6 +198,9 @@ namespace WindowsGSM.Functions
             CPUPriority = "2";
             CPUAffinity = string.Concat(System.Linq.Enumerable.Repeat("1", Environment.ProcessorCount));
             AutoScroll = true;
+            RconIp = GetIPAddress();
+            RconPort = "0";
+            RconPassword = "";
         }
 
         public bool CreateWindowsGSMConfig()
@@ -239,6 +251,9 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.CrashAlert}=\"1\"");
                     textwriter.WriteLine($"{SettingName.AutoIpUpdateAlert}=\"0\"");
                     textwriter.WriteLine($"{SettingName.SkipUserSetup}=\"0\"");
+                    textwriter.WriteLine($"{SettingName.RconIp}=\"{ServerIP}\"");
+                    textwriter.WriteLine($"{SettingName.RconPort}=\"0\"");
+                    textwriter.WriteLine($"{SettingName.RconPassword}=\"\"");
                 }
 
                 return true;
@@ -319,8 +334,9 @@ namespace WindowsGSM.Functions
             {
                 chars[i] = allowedChars[rd.Next(0, allowedChars.Length)];
             }
-
-            return new string(chars);
+            RconPassword = new string(chars);
+            SetSetting(ServerID, SettingName.RconPassword, RconPassword);
+            return RconPassword;
         }
 
         public static string GetSetting(string serverId, string settingName)

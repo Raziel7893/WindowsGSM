@@ -300,6 +300,7 @@
     <Resource Include="Images\Plugins\User.png" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CoreRCON" Version="5.4.2" />
     <PackageReference Include="Discord.Net.Commands" Version="3.17.4" />
     <PackageReference Include="Discord.Net.WebSocket" Version="3.17.4" />
     <PackageReference Include="Discord.Net.Interactions" Version="3.17.4" />

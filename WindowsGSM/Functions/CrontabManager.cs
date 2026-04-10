@@ -15,7 +15,8 @@ namespace WindowsGSM.Functions
         None = 0,
         Restart = 1,
         Exec = 2,
-        ServerConsoleCommand = 3
+        ServerConsoleCommand = 3,
+        RconCommand = 4
     }
 
     public struct CrontabEntry
@@ -107,7 +108,7 @@ namespace WindowsGSM.Functions
                     if (tokens.Length >= 3)
                     {
                         if (!Enum.TryParse(tokens[1].Trim(), true, out CrontabType type)) continue;
-
+                        string payload = string.Empty;
                         switch (type)
                         {
                             case CrontabType.None:
@@ -117,7 +118,12 @@ namespace WindowsGSM.Functions
                                 continue;
                             case CrontabType.ServerConsoleCommand:
                                 //we want to gather everything after the xth ;, as the commands could include some themself
-                                string payload = line.Substring(line.GetNthIndex(';', 2) + 1);
+                                payload = line.Substring(line.GetNthIndex(';', 2) + 1);
+                                crontabSchedules.AddEntry(tokens[0], type, payload);
+                                continue;
+                            case CrontabType.RconCommand:
+                                //we want to gather everything after the xth ;, as the commands could include some themself
+                                payload = line.Substring(line.GetNthIndex(';', 2) + 1);
                                 crontabSchedules.AddEntry(tokens[0], type, payload);
                                 continue;
                             case CrontabType.Exec:
@@ -212,6 +218,20 @@ namespace WindowsGSM.Functions
                 case CrontabType.ServerConsoleCommand:
                     Window.Log(Server.ID, $"Execute Scedules: {entry.Command}");
                     ExecuteServerConsoleCommand(entry.Command);
+                    return;
+                case CrontabType.RconCommand:
+                    Window.Log(Server.ID, $"Execute Scedules: {entry.Command}");
+                    if (ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort) == "0")
+                    {
+                        Window.Log(Server.ID, $"Error Executing RCON Scedule: Please Set Rcon Parameters in the WindowsGSM.cfg of that Server. (click Browse => Server Configs)");
+                        return;
+                    }
+
+                    RconClient.SendCommandAsync(
+                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconIp), 
+                        int.Parse(ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort)), 
+                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPassword), 
+                        entry.Command);
                     return;
             }
         }
