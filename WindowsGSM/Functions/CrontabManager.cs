@@ -94,6 +94,10 @@ namespace WindowsGSM.Functions
 
                 foreach (string line in lines)
                 {
+                    if (line.Length < 10)
+                    {
+                        continue;
+                    }
                     if (line[0] == '/' && line[1] == '/')
                     {
                         continue;
@@ -228,9 +232,9 @@ namespace WindowsGSM.Functions
                     }
 
                     RconClient.SendCommandAsync(
-                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconIp), 
-                        int.Parse(ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort)), 
-                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPassword), 
+                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconIp),
+                        int.Parse(ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort)),
+                        ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPassword),
                         entry.Command);
                     return;
             }
