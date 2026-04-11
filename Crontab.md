@@ -41,7 +41,7 @@ Rcon needs to be configured beforehand, and windowsgsm needs to be closed at tha
 Some Games do not have an exact implementation of the Source RCON protocoll and will not work with that(HumanityZ for example). 
 You will get a "Timeout while waiting for response" or similar in the right log window.
 If you have a working RCON client, ( https://github.com/Tiiffi/mcrcon for example) you can actually use that with my crontab. The line would be something like that then:
-> 1 1 * * *;exec;C:/WindowsGSM/mcrcon.exe; -H 127.0.0.1 -P port -p password say The server will restart in 5 min
+> 1 1 * * *;exec;C:/WindowsGSM/mcrcon.exe; -H 127.0.0.1 -P port -p password "admin The server will restart in 5 min"
 	
 ### Notes 
 Restart WGSM after creating or changing the file or restart the gameserver, it should reload it aswell
