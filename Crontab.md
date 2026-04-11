@@ -37,6 +37,10 @@ Rcon needs to be configured beforehand, and windowsgsm needs to be closed at tha
 * Set the Port, IP and Password according to your server. 
   * It can be that 127.0.0.1 does not work, at least for Minecraft it only listens for the actual local IP wgsm set as ServerIP (look at the beginning of the file to find it) 
   * For Plugins using the random Password function wgsm will preset that itself
+
+Some Games do not have an exact implementation of the Source RCON protocoll and will not work with that. you will get a "Timeout while waiting for response" or similar in the right log window
+If you have a working RCON cliend, ( https://github.com/Tiiffi/mcrcon for example) you can actually use that with my crontab. The line would be something like that then:
+> 1 1 * * *;exec;C:/WindowsGSM/mcrcon.exe; -H 127.0.0.1 -P port -p password say The server will restart in 5 min
 	
 ### Notes 
 Restart WGSM after creating or changing the file or restart the gameserver, it should reload it aswell
