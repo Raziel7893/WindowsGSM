@@ -72,7 +72,7 @@ namespace WindowsGSM.Functions
         public bool AutoRestartAlert;
         public bool AutoUpdateAlert;
         public bool RestartCrontabAlert;
-        public bool CrashAlert; 
+        public bool CrashAlert;
         public bool AutoIpUpdate;
         public bool SkipUserSetup;
         public string CPUPriority;
@@ -117,7 +117,11 @@ namespace WindowsGSM.Functions
             {
                 foreach (string line in File.ReadLines(configpath))
                 {
-                    string[] keyvalue = line.Split(new[] {'='}, 2);
+                    if (line.StartsWith("//"))
+                    {
+                        continue;
+                    }
+                    string[] keyvalue = line.Split(new[] { '=' }, 2);
                     if (keyvalue.Length == 2)
                     {
                         keyvalue[1] = keyvalue[1].Substring(1, keyvalue[1].Length - 2);
@@ -149,7 +153,7 @@ namespace WindowsGSM.Functions
                             case SettingName.AutoRestartAlert: AutoRestartAlert = keyvalue[1] == "1"; break;
                             case SettingName.AutoUpdateAlert: AutoUpdateAlert = keyvalue[1] == "1"; break;
                             case SettingName.RestartCrontabAlert: RestartCrontabAlert = keyvalue[1] == "1"; break;
-                            case SettingName.CrashAlert: CrashAlert = keyvalue[1] == "1"; break; 
+                            case SettingName.CrashAlert: CrashAlert = keyvalue[1] == "1"; break;
                             case SettingName.AutoIpUpdateAlert: AutoIpUpdate = keyvalue[1] == "1"; break;
                             case SettingName.SkipUserSetup: SkipUserSetup = keyvalue[1] == "1"; break;
                             case SettingName.CPUPriority: CPUPriority = keyvalue[1]; break;
@@ -241,7 +245,7 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.CrontabFormat}=\"{CrontabFormat}\"");
                     textwriter.WriteLine(string.Empty);
                     textwriter.WriteLine($"{SettingName.EmbedConsole}=\"{(EmbedConsole ? "1" : "0")}\"");
-                    textwriter.WriteLine($"{SettingName.ShowConsole}=\"{(ShowConsole? "1" : "0")}\"");
+                    textwriter.WriteLine($"{SettingName.ShowConsole}=\"{(ShowConsole ? "1" : "0")}\"");
                     textwriter.WriteLine($"{SettingName.AutoScroll}=\"{(AutoScroll ? "1" : "0")}\"");
                     textwriter.WriteLine(string.Empty);
                     textwriter.WriteLine($"{SettingName.AutoStartAlert}=\"1\"");
