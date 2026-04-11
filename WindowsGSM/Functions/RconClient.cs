@@ -9,10 +9,10 @@ namespace WindowsGSM.Functions
 {
     public class RconClient
     {
-        static string LogFilePath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs", "RconLogs.log");
         private RCON Connection = null;
-        public async Task<bool> Connect(string ip, int port, string password)
+        public async Task<string> Connect(string ip, int port, string password)
         {
+            Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs"));
             try
             {
                 Connection = new RCON(GetEndpoint(ip, port), password);
@@ -22,11 +22,10 @@ namespace WindowsGSM.Functions
             {
                 string logPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs");
                 Directory.CreateDirectory(logPath);
-
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {Connection.IPEndpoint.ToString()}! {e.Message}\n");
-                return false;
+                //we don't have the correct Log here, so we just return and let the caller take care of it
+                return e.Message;
             }
-            return true;
+            return "";
         }
 
         private static IPEndPoint GetEndpoint(string ip, int port)
@@ -40,17 +39,14 @@ namespace WindowsGSM.Functions
         {
             if (Connection == null)
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established, Connect was not called!\n");
                 return "CONNECTION FAILED";
             }
             else if (!Connection.Connected)
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection failed to be established to {Connection.IPEndpoint.ToString()}!\n");
                 return "CONNECTION FAILED";
             }
 
             var response = await Connection.SendCommandAsync(command, TimeSpan.FromSeconds(5));
-            await File.AppendAllTextAsync(LogFilePath, $"Send command \"{command}\" with response \"{response}\"\n");
             return response;
         }
 
@@ -63,13 +59,11 @@ namespace WindowsGSM.Functions
                 await connection.ConnectAsync();
 
                 var response = await connection.SendCommandAsync(command, TimeSpan.FromSeconds(10));
-                await File.AppendAllTextAsync(LogFilePath, $"Send command \"{command}\" with response \"{response}\"\n");
                 connection.Dispose();
                 return response;
             }
             catch (Exception e)
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {connection.IPEndpoint.ToString()}! {e.Message}\n");
                 return e.Message;
             }
 
