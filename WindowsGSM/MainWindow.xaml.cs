@@ -248,6 +248,8 @@ namespace WindowsGSM
             // Add all themes to comboBox_Themes
             ThemeManager.Current.Themes.Select(t => Path.GetExtension(t.Name).Trim('.')).Distinct().OrderBy(x => x).ToList().ForEach(delegate (string name) { comboBox_Themes.Items.Add(name); });
 
+            Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs"));
+
             // Set up _serverMetadata
             for (int i = 0; i < MAX_SERVER; i++)
             {

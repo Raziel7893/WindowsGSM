@@ -1,4 +1,6 @@
 ﻿using CoreRCON;
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -7,15 +9,22 @@ namespace WindowsGSM.Functions
 {
     public class RconClient
     {
-        const string LogFilePath = "logs/RconLogs.log";
-        private RCON connection = null;
+        static string LogFilePath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs", "RconLogs.log");
+        private RCON Connection = null;
         public async Task<bool> Connect(string ip, int port, string password)
         {
-            connection = new RCON(GetEndpoint(ip, port), password);
-            await connection.ConnectAsync();
-            if (connection == null || !connection.Connected)
+            try
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {connection.IPEndpoint.ToString()}!");
+                Connection = new RCON(GetEndpoint(ip, port), password);
+                await Connection.ConnectAsync();
+            }
+            catch (Exception e)
+            {
+                string logPath = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "logs");
+                Directory.CreateDirectory(logPath);
+
+                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {Connection.IPEndpoint.ToString()}! {e.Message}\n");
+                return false;
             }
             return true;
         }
@@ -27,28 +36,43 @@ namespace WindowsGSM.Functions
             return endpoint;
         }
 
-        public async Task<bool> Send(string command)
+        public async Task<string> Send(string command)
         {
-            if (connection == null)
+            if (Connection == null)
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established, Connect was not called!");
+                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established, Connect was not called!\n");
+                return "CONNECTION FAILED";
             }
-            else if (!connection.Connected)
+            else if (!Connection.Connected)
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection failed to be established to {connection.IPEndpoint.ToString()}!");
+                await File.AppendAllTextAsync(LogFilePath, $"Connection failed to be established to {Connection.IPEndpoint.ToString()}!\n");
+                return "CONNECTION FAILED";
             }
-            return true;
+
+            var response = await Connection.SendCommandAsync(command, TimeSpan.FromSeconds(5));
+            await File.AppendAllTextAsync(LogFilePath, $"Send command \"{command}\" with response \"{response}\"\n");
+            return response;
         }
 
-        public static async Task SendCommandAsync(string ip, int port, string password, string command)
+        public static async Task<string> SendCommandAsync(string ip, int port, string password, string command)
         {
             var connection = new RCON(GetEndpoint(ip, port), password);
-            await connection.ConnectAsync();
-            if (connection == null || !connection.Connected)
+
+            try
             {
-                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {connection.IPEndpoint.ToString()}!");
+                await connection.ConnectAsync();
+
+                var response = await connection.SendCommandAsync(command, TimeSpan.FromSeconds(10));
+                await File.AppendAllTextAsync(LogFilePath, $"Send command \"{command}\" with response \"{response}\"\n");
+                connection.Dispose();
+                return response;
             }
-            await connection.SendCommandAsync(command);
+            catch (Exception e)
+            {
+                await File.AppendAllTextAsync(LogFilePath, $"Connection could not be established to {connection.IPEndpoint.ToString()}! {e.Message}\n");
+                return e.Message;
+            }
+
         }
     }
 }

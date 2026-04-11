@@ -231,11 +231,12 @@ namespace WindowsGSM.Functions
                         return;
                     }
 
-                    RconClient.SendCommandAsync(
+                    var response = await RconClient.SendCommandAsync(
                         ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconIp),
                         int.Parse(ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort)),
                         ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPassword),
-                        entry.Command);
+                        entry.Command); 
+                    Window.Log(Server.ID, $"RCON response: {response}");
                     return;
             }
         }
