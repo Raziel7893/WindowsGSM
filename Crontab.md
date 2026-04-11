@@ -9,8 +9,9 @@ Comments can be added by 2 leading slashes "//" as first characters in that line
 > CrontabExpression;Type;Command;Arguments
 
 1. Example Contents for Execute:
-> * 6 * * *;exec;cmd.exe;/C "C:\Full\Path\To\test.bat"
-> * 7 * * *;exec;ping.exe;127.0.0.1 /n 8
+> 5 1 * * *;exec;cmd.exe;/C "C:\Full\Path\To\test.bat"
+> 
+> 6 1 * * *;exec;ping.exe;127.0.0.1 /n 8
 
 2. Example for sending Commands:
 > 5 * * * *;ServerConsoleCommand;cheat serverchat this message will occure every hour
@@ -20,11 +21,14 @@ Comments can be added by 2 leading slashes "//" as first characters in that line
 
 4. Example for restart with message Commands in ARK:
 > 5 6 * * *;ServerConsoleCommand;cheat serverchat server will restart in 5 mins
+> 
 > 9 6 * * *;ServerConsoleCommand;cheat saveworld
+> 
 > 10 6 * * *;restart
 
 4.1 Example for Minecraft RCON
 > 5 6 * * *;RconCommand;say server will restart in 5 mins
+> 
 > 10 6 * * *;restart
 
 5. Example for additional Restarts besides the Gui defined one:
