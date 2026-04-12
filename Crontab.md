@@ -44,9 +44,11 @@ If you have a working RCON client, ( https://github.com/Tiiffi/mcrcon for exampl
 > 1 1 * * *;exec;C:/WindowsGSM/mcrcon.exe; -H 127.0.0.1 -P port -p password "admin The server will restart in 5 min"
 
 If the config does not appear on an existing server, paste the following to your WindowsGSM.cfg while Windowsgsm is shut down
+```ini
 rconip="192.168.201.22"
 rconport="25575"
 rconpassword="dtS9bi9SvHN0"
+```
 
 ### Notes 
 Restart WGSM after creating or changing the file or restart the gameserver, it should reload it aswell
