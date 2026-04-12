@@ -44,7 +44,9 @@ Rcon needs to be configured beforehand, and windowsgsm needs to be closed at tha
 * Set the Port, IP and Password according to your server. 
   * It can be that 127.0.0.1 does not work, at least for Minecraft it only listens for the actual local IP wgsm set as ServerIP (look at the beginning of the file to find it) 
   * For Plugins using the random Password function wgsm will preset that itself
-> 5 6 * * *;RconCommand;say server will restart in 5 mins
+```csv
+5 6 * * *;RconCommand;say server will restart in 5 mins
+```
 
 ### Known issues
 
