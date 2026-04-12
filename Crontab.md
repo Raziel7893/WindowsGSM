@@ -26,11 +26,6 @@ Comments can be added by 2 leading slashes "//" as first characters in that line
 > 
 > 10 6 * * *;restart
 
-4.1 Example for Minecraft RCON
-> 5 6 * * *;RconCommand;say server will restart in 5 mins
-> 
-> 10 6 * * *;restart
-
 5. Example for additional Restarts besides the Gui defined one:
 > * 2 * * *;restart
 
@@ -41,6 +36,7 @@ Rcon needs to be configured beforehand, and windowsgsm needs to be closed at tha
 * Set the Port, IP and Password according to your server. 
   * It can be that 127.0.0.1 does not work, at least for Minecraft it only listens for the actual local IP wgsm set as ServerIP (look at the beginning of the file to find it) 
   * For Plugins using the random Password function wgsm will preset that itself
+> 5 6 * * *;RconCommand;say server will restart in 5 mins
 
 Some Games do not have an exact implementation of the Source RCON protocoll and will not work with that(HumanityZ for example). 
 You will get a "Timeout while waiting for response" or similar in the right log window.
