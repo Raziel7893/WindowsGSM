@@ -1,11 +1,11 @@
-## Improved Crontab Managing.
+# Improved Crontab Managing.
 Crontabs can now also Execute Windows commands and send Server Console Commands 
 They can now be configured by adding *.csv files to the server config folder (servers\\%ServerID%\\configs\\Crontab) (or click Browse => Server Configs in WindowsGSM while the server is marked, then create the folder Crontab if not existing.)
 
 You can Add multiple lines to that csv file, and also add multiple files. WGSM will try to read all *.csv files in that folder.
 Comments can be added by 2 leading slashes "//" as first characters in that line
 
-### File Structure
+## File Structure
 > CrontabExpression;Type;Command;Arguments
 
 1. Example Contents for Execute:
@@ -29,7 +29,7 @@ Comments can be added by 2 leading slashes "//" as first characters in that line
 5. Example for additional Restarts besides the Gui defined one:
 > * 2 * * *;restart
 
-### RCON Support
+## RCON Support
 Rcon needs to be configured beforehand, and windowsgsm needs to be closed at that point.
 * Find the file servers\\%ServerID%\\configs\\WindowsGSM.cfg
 * Find the RCON entries at the end (you need to have the new wgsm version started once for it to have been created)
@@ -37,6 +37,8 @@ Rcon needs to be configured beforehand, and windowsgsm needs to be closed at tha
   * It can be that 127.0.0.1 does not work, at least for Minecraft it only listens for the actual local IP wgsm set as ServerIP (look at the beginning of the file to find it) 
   * For Plugins using the random Password function wgsm will preset that itself
 > 5 6 * * *;RconCommand;say server will restart in 5 mins
+
+### Known issues
 
 Some Games do not have an exact implementation of the Source RCON protocoll and will not work with that(HumanityZ for example). 
 You will get a "Timeout while waiting for response" or similar in the right log window.
