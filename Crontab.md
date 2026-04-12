@@ -6,28 +6,36 @@ You can Add multiple lines to that csv file, and also add multiple files. WGSM w
 Comments can be added by 2 leading slashes "//" as first characters in that line
 
 ## File Structure
-> CrontabExpression;Type;Command;Arguments
+```csv
+CrontabExpression;Type;Command;Arguments
+```
 
 1. Example Contents for Execute:
-```
+```csv
 5 1 * * *;exec;cmd.exe;/C "C:\Full\Path\To\test.bat"
 6 1 * * *;exec;ping.exe;127.0.0.1 /n 8
 ```
 
 2. Example for sending Commands:
-> 5 * * * *;ServerConsoleCommand;cheat serverchat this message will occure every hour
+```csv
+5 * * * *;ServerConsoleCommand;cheat serverchat this message will occure every hour
+```
 
 3. Example for sending Commands:
-> 5 * * * *;RconCommand;say this message will occure every hour
+```csv
+5 * * * *;RconCommand;say this message will occure every hour
+```
 
 4. Example for restart with message Commands in ARK:
 ```
- 5 6 * * *;ServerConsoleCommand;cheat serverchat server will restart in 5 mins
- 9 6 * * *;ServerConsoleCommand;cheat saveworld
- 10 6 * * *;restart
+5 6 * * *;ServerConsoleCommand;cheat serverchat server will restart in 5 mins
+9 6 * * *;ServerConsoleCommand;cheat saveworld
+10 6 * * *;restart
 ```
 5. Example for additional Restarts besides the Gui defined one:
-> * 2 * * *;restart
+```csv
+* 2 * * *;restart
+```
 
 ## RCON Support
 Rcon needs to be configured beforehand, and windowsgsm needs to be closed at that point.
