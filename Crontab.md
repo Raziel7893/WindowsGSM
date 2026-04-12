@@ -43,7 +43,7 @@ You will get a "Timeout while waiting for response" or similar in the right log 
 If you have a working RCON client, ( https://github.com/Tiiffi/mcrcon for example) you can actually use that with my crontab. The line would be something like that then:
 > 1 1 * * *;exec;C:/WindowsGSM/mcrcon.exe; -H 127.0.0.1 -P port -p password "admin The server will restart in 5 min"
 
-If the config does not appear on an existing server, paste the following to your WindowsGSM.cfg while Windowsgsm is shut down
+If the config does not appear on an existing server, paste the following to the end of your WindowsGSM.cfg of that particular server while Windowsgsm is shut down
 ```ini
 rconip="192.168.201.22"
 rconport="25575"
