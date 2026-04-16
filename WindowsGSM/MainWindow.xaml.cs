@@ -1126,12 +1126,19 @@ namespace WindowsGSM
 
         private async void SendGoogleAnalytics()
         {
-            var analytics = new GoogleAnalytics();
-            analytics.SendWindowsOS();
-            analytics.SendWindowsGSMVersion();
-            analytics.SendProcessorName();
-            analytics.SendRAM();
-            analytics.SendDisk();
+            try
+            {
+                var analytics = new GoogleAnalytics();
+                analytics.SendWindowsOS();
+                analytics.SendWindowsGSMVersion();
+                analytics.SendProcessorName();
+                analytics.SendRAM();
+                analytics.SendDisk();
+            }
+            catch (Exception e)
+            {
+                // i basically just don't care when google analytics fail
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -1399,8 +1406,15 @@ namespace WindowsGSM
 
                 if (MahAppSwitch_SendStatistics.IsOn)
                 {
-                    var analytics = new GoogleAnalytics();
-                    analytics.SendGameServerInstall(newServerConfig.ServerID, servergame);
+                    try
+                    {
+                        var analytics = new GoogleAnalytics();
+                        analytics.SendGameServerInstall(newServerConfig.ServerID, servergame);
+                    }
+                    catch (Exception e)
+                    {
+                        // i basically just don't care when google analytics fail
+                    }
                 }
             }
             else
@@ -2100,8 +2114,15 @@ namespace WindowsGSM
 
             if (MahAppSwitch_SendStatistics.IsOn)
             {
-                var analytics = new GoogleAnalytics();
-                analytics.SendGameServerStart(server.ID, server.Game);
+                try
+                {
+                    var analytics = new GoogleAnalytics();
+                    analytics.SendGameServerStart(server.ID, server.Game);
+                }
+                catch (Exception e)
+                {
+                    // i basically just don't care when google analytics fail
+                }
             }
 
             return gameServer;
@@ -2966,8 +2987,15 @@ namespace WindowsGSM
             {
                 if (MahAppSwitch_SendStatistics.IsOn)
                 {
-                    var analytics = new GoogleAnalytics();
-                    analytics.SendGameServerHeartBeat(server.Game, server.Name);
+                    try
+                    {
+                        var analytics = new GoogleAnalytics();
+                        analytics.SendGameServerHeartBeat(server.Game, server.Name);
+                    }
+                    catch (Exception e)
+                    {
+                        // i basically just don't care when google analytics fail
+                    }
                 }
 
                 await Task.Delay(300000);
