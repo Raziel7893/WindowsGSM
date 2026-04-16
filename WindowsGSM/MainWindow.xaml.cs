@@ -54,6 +54,7 @@ namespace WindowsGSM
             public const string UIAnimation = "UIAnimation";
             public const string DarkTheme = "DarkTheme";
             public const string StartOnBoot = "StartOnBoot";
+            public const string MinimizedOnStart = "MinimizeOnStart";
             public const string RestartOnCrash = "RestartOnCrash";
             public const string DonorTheme = "DonorTheme";
             public const string DonorColor = "DonorColor";
@@ -266,6 +267,7 @@ namespace WindowsGSM
                 key.SetValue(RegistryKeyName.UIAnimation, "True");
                 key.SetValue(RegistryKeyName.DarkTheme, "False");
                 key.SetValue(RegistryKeyName.StartOnBoot, "False");
+                key.SetValue(RegistryKeyName.MinimizedOnStart, "False");
                 key.SetValue(RegistryKeyName.RestartOnCrash, "False");
                 key.SetValue(RegistryKeyName.DonorTheme, "False");
                 key.SetValue(RegistryKeyName.DonorColor, DEFAULT_THEME);
@@ -280,6 +282,7 @@ namespace WindowsGSM
             MahAppSwitch_UIAnimation.IsOn = (key.GetValue(RegistryKeyName.UIAnimation) ?? true).ToString() == "True";
             MahAppSwitch_DarkTheme.IsOn = (key.GetValue(RegistryKeyName.DarkTheme) ?? false).ToString() == "True";
             MahAppSwitch_StartOnBoot.IsOn = (key.GetValue(RegistryKeyName.StartOnBoot) ?? false).ToString() == "True";
+            MahAppSwitch_MinimizeOnStart.IsOn = (key.GetValue(RegistryKeyName.MinimizedOnStart) ?? false).ToString() == "True";
             MahAppSwitch_RestartOnCrash.IsOn = (key.GetValue(RegistryKeyName.RestartOnCrash) ?? false).ToString() == "True";
             MahAppSwitch_DonorConnect.Toggled -= DonorConnect_IsCheckedChanged;
             MahAppSwitch_DonorConnect.IsOn = (key.GetValue(RegistryKeyName.DonorTheme) ?? false).ToString() == "True";
@@ -390,6 +393,7 @@ namespace WindowsGSM
             notifyIcon.Icon = new System.Drawing.Icon(System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Images/WindowsGSM-Icon.ico")).Stream);
             notifyIcon.BalloonTipClicked += OnBalloonTipClick;
             notifyIcon.MouseClick += NotifyIcon_MouseClick;
+
 
             ServerPath.CreateAndFixDirectories();
 
@@ -3329,6 +3333,13 @@ namespace WindowsGSM
             }
 
             SetStartOnBoot(MahAppSwitch_StartOnBoot.IsOn);
+        }
+        private void MinimizeOnStart_IsCheckedChanged(object sender, EventArgs e)
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\WindowsGSM", true))
+            {
+                key?.SetValue(RegistryKeyName.MinimizedOnStart, MahAppSwitch_MinimizeOnStart.IsOn.ToString());
+            }
         }
 
         private void RestartOnCrash_IsCheckedChanged(object sender, EventArgs e)

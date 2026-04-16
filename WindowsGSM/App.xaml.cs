@@ -89,7 +89,16 @@ namespace WindowsGSM
             };
 
             MainWindow mainwindow = new MainWindow(showCrashHint);
-            mainwindow.Show();
+
+            if (mainwindow.MahAppSwitch_MinimizeOnStart.IsOn)
+            {
+                mainwindow.Hide();
+            }
+            else
+            {
+                mainwindow.Show();
+            }
+
         }
     }
 }
