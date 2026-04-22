@@ -153,6 +153,7 @@ namespace WindowsGSM
         public List<PluginMetadata> PluginsList = new List<PluginMetadata>();
 
         private readonly List<System.Windows.Controls.CheckBox> _checkBoxes = new List<System.Windows.Controls.CheckBox>();
+        private readonly Dictionary<string, System.Windows.Controls.TextBox> _editConfigCustomSettingTextBoxes = new Dictionary<string, System.Windows.Controls.TextBox>(StringComparer.OrdinalIgnoreCase);
 
         private static string GetApplicationPath()
         {
@@ -4128,8 +4129,125 @@ namespace WindowsGSM
             numericUpDown_EC_ServerQueryPort.Value = int.TryParse(serverConfig.ServerQueryPort, out var queryPort) ? queryPort : int.Parse(gameServer.QueryPort);
             textbox_EC_ServerMap.Text = serverConfig.ServerMap;
             textbox_EC_ServerGSLT.Text = serverConfig.ServerGSLT;
+            Refresh_EditConfig_CustomSettings(serverConfig, gameServer);
             textbox_EC_ServerParam.Text = serverConfig.ServerParam;
             return true;
+        }
+
+        private void Refresh_EditConfig_CustomSettings(ServerConfig serverConfig, dynamic gameServer)
+        {
+            _editConfigCustomSettingTextBoxes.Clear();
+            stackPanel_EC_CustomSettings.Children.Clear();
+
+            var customSettings = GetCustomServerSettings(gameServer);
+            stackPanel_EC_CustomSettingsContainer.Visibility = customSettings.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (customSettings.Count == 0) { return; }
+
+            foreach (var setting in customSettings)
+            {
+                string value = ServerConfig.GetSetting(serverConfig.ServerID, setting.Key);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    value = setting.DefaultValue ?? string.Empty;
+                }
+
+                var row = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+                row.Children.Add(new Label { Content = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label, Padding = new Thickness(0, 0, 0, 3) });
+
+                var textBox = new System.Windows.Controls.TextBox
+                {
+                    Height = 23,
+                    Width = 480,
+                    TextWrapping = TextWrapping.Wrap,
+                    Text = value,
+                    FontFamily = new FontFamily("Consolas"),
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+
+                row.Children.Add(textBox);
+                stackPanel_EC_CustomSettings.Children.Add(row);
+                _editConfigCustomSettingTextBoxes[setting.Key] = textBox;
+            }
+        }
+
+        private static List<CustomServerSetting> GetCustomServerSettings(dynamic gameServer)
+        {
+            var settings = new List<CustomServerSetting>();
+            if (gameServer == null) { return settings; }
+
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null) { return settings; }
+
+            if (rawSettings is IEnumerable enumerable && !(rawSettings is string))
+            {
+                foreach (object item in enumerable)
+                {
+                    AddCustomServerSetting(settings, item);
+                }
+            }
+            else
+            {
+                AddCustomServerSetting(settings, rawSettings);
+            }
+
+            return settings
+                .Where(setting => !string.IsNullOrWhiteSpace(setting.Key) && !ServerConfig.IsBuiltInSetting(setting.Key))
+                .GroupBy(setting => setting.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private static void AddCustomServerSetting(List<CustomServerSetting> settings, object item)
+        {
+            if (item == null) { return; }
+
+            if (item is CustomServerSetting customServerSetting)
+            {
+                settings.Add(NormalizeCustomServerSetting(customServerSetting));
+                return;
+            }
+
+            if (item is string key)
+            {
+                settings.Add(new CustomServerSetting(key));
+                return;
+            }
+
+            string reflectedKey = GetMemberValue(item, "Key")?.ToString()
+                ?? GetMemberValue(item, "Name")?.ToString()
+                ?? GetMemberValue(item, "SettingName")?.ToString();
+
+            if (string.IsNullOrWhiteSpace(reflectedKey)) { return; }
+
+            settings.Add(new CustomServerSetting
+            {
+                Key = reflectedKey,
+                Label = GetMemberValue(item, "Label")?.ToString()
+                    ?? GetMemberValue(item, "DisplayName")?.ToString()
+                    ?? reflectedKey,
+                DefaultValue = GetMemberValue(item, "DefaultValue")?.ToString()
+                    ?? GetMemberValue(item, "Default")?.ToString()
+                    ?? string.Empty
+            });
+        }
+
+        private static CustomServerSetting NormalizeCustomServerSetting(CustomServerSetting setting)
+        {
+            setting.Label = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label;
+            setting.DefaultValue = setting.DefaultValue ?? string.Empty;
+            return setting;
+        }
+
+        private static object GetMemberValue(object source, string memberName)
+        {
+            if (source == null) { return null; }
+
+            var type = source.GetType();
+            var property = type.GetProperty(memberName);
+            if (property != null) { return property.GetValue(source); }
+
+            var field = type.GetField(memberName);
+            return field?.GetValue(source);
         }
 
         private void Button_EditConfig_Save_Click(object sender, RoutedEventArgs e)
@@ -4145,6 +4263,10 @@ namespace WindowsGSM
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerQueryPort, numericUpDown_EC_ServerQueryPort.Value.ToString());
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMap, textbox_EC_ServerMap.Text.Trim());
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerGSLT, textbox_EC_ServerGSLT.Text.Trim());
+            foreach (var customSetting in _editConfigCustomSettingTextBoxes)
+            {
+                ServerConfig.SetSetting(server.ID, customSetting.Key, customSetting.Value.Text.Trim());
+            }
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerParam, textbox_EC_ServerParam.Text.Trim());
 
             LoadServerTable();

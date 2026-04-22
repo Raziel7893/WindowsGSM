@@ -81,6 +81,7 @@ namespace WindowsGSM.Functions
         public string RconPort;
         public string RconIp;
         public string RconPassword;
+        public System.Collections.Generic.Dictionary<string, string> CustomSettings = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public ServerConfig(string serverid)
         {
@@ -162,6 +163,7 @@ namespace WindowsGSM.Functions
                             case SettingName.RconIp: RconIp = keyvalue[1]; break;
                             case SettingName.RconPort: RconPort = keyvalue[1]; break;
                             case SettingName.RconPassword: RconPassword = keyvalue[1]; break;
+                            default: CustomSettings[keyvalue[0]] = keyvalue[1]; break;
                         }
                     }
                 }
@@ -367,6 +369,30 @@ namespace WindowsGSM.Functions
             }
 
             return string.Empty;
+        }
+
+        public string GetCustomSetting(string settingName, string defaultValue = "")
+        {
+            return CustomSettings.TryGetValue(settingName, out string value) ? value : defaultValue;
+        }
+
+        public static string GetCustomSetting(string serverId, string settingName, string defaultValue = "")
+        {
+            string value = GetSetting(serverId, settingName);
+            return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
+        }
+
+        public static bool IsBuiltInSetting(string settingName)
+        {
+            foreach (var field in typeof(SettingName).GetFields())
+            {
+                if (field.IsLiteral && !field.IsInitOnly && string.Equals(field.GetRawConstantValue()?.ToString(), settingName, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static void SetSetting(string serverId, string settingName, string data)

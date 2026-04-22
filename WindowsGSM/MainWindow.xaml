@@ -177,6 +177,12 @@
                         <Label Content="Server GSLT"></Label>
                         <TextBox x:Name="textbox_EC_ServerGSLT" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
                      </StackPanel>
+                     <StackPanel x:Name="stackPanel_EC_CustomSettingsContainer" Margin="0,0,0,10" Visibility="Collapsed">
+                        <Label Content="Plugin Settings"></Label>
+                        <ScrollViewer Width="500" MaxHeight="165" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                           <StackPanel x:Name="stackPanel_EC_CustomSettings"/>
+                        </ScrollViewer>
+                     </StackPanel>
                      <StackPanel>
                         <Label Content="Server Start Param"></Label>
                      </StackPanel>
