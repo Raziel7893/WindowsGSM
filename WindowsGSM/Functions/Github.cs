@@ -22,10 +22,7 @@ namespace WindowsGSM.Functions
 
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync($"https://github.com/WindowsGSM/Game-Server-Configs/raw/master/{gameFullName.Replace(":", "")}/{System.IO.Path.GetFileName(filePath)}", filePath);
-                }
+                await Http.DownloadFileAsync($"https://github.com/WindowsGSM/Game-Server-Configs/raw/master/{gameFullName.Replace(":", "")}/{System.IO.Path.GetFileName(filePath)}", filePath);
             }
             catch (Exception e)
             {
@@ -57,10 +54,7 @@ namespace WindowsGSM.Functions
             try
             {
                 // Download config file from github
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync($"https://github.com/WindowsGSM/Game-Server-Configs/raw/master/{serverGame.Replace(":", "")}/{Path.GetFileName(configPath)}", configPath);
-                }
+                await Http.DownloadFileAsync($"https://github.com/WindowsGSM/Game-Server-Configs/raw/master/{serverGame.Replace(":", "")}/{Path.GetFileName(configPath)}", configPath);
 
                 // Replace values
                 string configText = File.ReadAllText(configPath);

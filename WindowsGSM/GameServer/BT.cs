@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -12,7 +12,7 @@ namespace WindowsGSM.GameServer
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Barotrauma Dedicated Server";
         public string StartPath = "DedicatedServer.exe";

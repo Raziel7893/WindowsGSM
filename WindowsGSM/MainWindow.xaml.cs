@@ -1,6 +1,4 @@
 ﻿using ControlzEx.Theming;
-using LiveCharts;
-using LiveCharts.Wpf;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using Microsoft.Win32;
@@ -18,6 +16,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -47,6 +46,12 @@ namespace WindowsGSM
 
         [DllImport("user32.dll")]
         private static extern int SetWindowText(IntPtr hWnd, string windowName);
+
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         private static class RegistryKeyName
         {
@@ -136,7 +141,7 @@ namespace WindowsGSM
 
         public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public static readonly int MAX_SERVER = 256;
-        public static readonly string WGSM_PATH = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+        public static readonly string WGSM_PATH = GetApplicationPath();
         public static readonly string DEFAULT_THEME = "Cyan";
 
         private readonly NotifyIcon notifyIcon;
@@ -149,6 +154,29 @@ namespace WindowsGSM
 
         private readonly List<System.Windows.Controls.CheckBox> _checkBoxes = new List<System.Windows.Controls.CheckBox>();
 
+        private static string GetApplicationPath()
+        {
+            string exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            string exeDirectory = string.IsNullOrWhiteSpace(exePath) ? null : Path.GetDirectoryName(exePath);
+
+            return string.IsNullOrWhiteSpace(exeDirectory) ? AppContext.BaseDirectory : exeDirectory;
+        }
+
+        private static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            while (child != null)
+            {
+                if (child is T parent)
+                {
+                    return parent;
+                }
+
+                child = VisualTreeHelper.GetParent(child);
+            }
+
+            return null;
+        }
+
         public string g_DonorType = string.Empty;
 
         private readonly DiscordBot.Bot g_DiscordBot = new DiscordBot.Bot();
@@ -156,12 +184,56 @@ namespace WindowsGSM
         private long _lastAutoRestartTime = 0;
         private long _lastCrashTime = 0;
         private const long _webhookThresholdTimeInMs = 6000 * 5;
+        private const int WM_NCHITTEST = 0x0084;
+        private const int WM_NCLBUTTONDOWN = 0x00A1;
+        private const int WM_SYSCOMMAND = 0x0112;
+        private const int SC_MINIMIZE = 0xF020;
+        private const int HTCAPTION = 2;
         public ServerStatus _latestWebhookSend = ServerStatus.Stopped;
 
         private void OnSourceInitialized(object sender, EventArgs e)
         {
             HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
             source.AddHook(new HwndSourceHook(HandleMessages));
+        }
+
+        private void MainWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount > 1 || e.ButtonState != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            if (FindVisualParent<System.Windows.Controls.Button>(e.OriginalSource as DependencyObject) != null)
+            {
+                return;
+            }
+
+            Point mousePosition = e.GetPosition(this);
+            if (!IsInDraggableTitleArea(mousePosition))
+            {
+                return;
+            }
+
+            var source = (HwndSource)PresentationSource.FromVisual(this);
+            if (source?.Handle != IntPtr.Zero)
+            {
+                ReleaseCapture();
+                SendMessage(source.Handle, WM_NCLBUTTONDOWN, new IntPtr(HTCAPTION), IntPtr.Zero);
+                e.Handled = true;
+            }
+        }
+
+        private bool IsInDraggableTitleArea(Point point)
+        {
+            double titleBarHeight = TitleBarHeight > 0 ? TitleBarHeight : 32;
+            if (point.Y < 0 || point.Y > titleBarHeight || point.X < 0 || point.X > ActualWidth)
+            {
+                return false;
+            }
+
+            var source = InputHitTest(point) as DependencyObject;
+            return FindVisualParent<System.Windows.Controls.Button>(source) == null;
         }
 
         protected override async void OnClosing(CancelEventArgs e)
@@ -219,11 +291,21 @@ namespace WindowsGSM
 
         private IntPtr HandleMessages(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            // 0x0112 == WM_SYSCOMMAND, 'Window' command message.
-            // 0xF020 == SC_MINIMIZE, command to minimize the window.
-            if (msg == 0x0112 && ((int)wParam & 0xFFF0) == 0xF020)
+            if (msg == WM_NCHITTEST)
             {
-                // Cancel the minimize.
+                int x = unchecked((short)((long)lParam & 0xFFFF));
+                int y = unchecked((short)(((long)lParam >> 16) & 0xFFFF));
+                Point point = PointFromScreen(new Point(x, y));
+
+                if (IsInDraggableTitleArea(point))
+                {
+                    handled = true;
+                    return new IntPtr(HTCAPTION);
+                }
+            }
+
+            if (msg == WM_SYSCOMMAND && ((int)wParam & 0xFFF0) == SC_MINIMIZE)
+            {
                 NotifyIcon_MouseClick(null, null);
                 handled = true;
             }
@@ -236,9 +318,17 @@ namespace WindowsGSM
             //Add SplashScreen
             var splashScreen = new SplashScreen("Images/SplashScreen.png");
             splashScreen.Show(false, true);
-            DiscordWebhook.SendErrorLog();
+            try
+            {
+                DiscordWebhook.SendErrorLog();
+            }
+            catch
+            {
+                // Ignore errors sending error logs
+            }
 
             InitializeComponent();
+            AddHandler(MouseLeftButtonDownEvent, new MouseButtonEventHandler(MainWindow_MouseLeftButtonDown), true);
             this.SourceInitialized += new EventHandler(OnSourceInitialized);
 
             Title = $"WindowsGSM {WGSM_VERSION}";
@@ -1087,40 +1177,49 @@ namespace WindowsGSM
                 .Select(s => (type: s.Key, players: s.Sum(p => p.players)))
                 .ToList();
 
-            // Ajust the maxvalue of axis Y base on PlayerCount
-            if (typePlayers.Count > 0)
-            {
-                int maxValue = typePlayers.Select(s => s.Item2).Max() + 5;
-                livechart_players_axisY.MaxValue = (maxValue > 10) ? maxValue : 10;
-            }
+            livechart_players.Children.Clear();
+            livechart_players.ColumnDefinitions.Clear();
 
-            // Update the column data if updated, if ServerType doesn't exist remove
-            for (int i = 0; i < livechart_players.Series.Count; i++)
-            {
-                if (typePlayers.Select(t => t.Item1).Contains(livechart_players.Series[i].Title))
-                {
-                    int currentPlayers = typePlayers.Where(t => t.Item1 == livechart_players.Series[i].Title).Select(t => t.Item2).FirstOrDefault();
-                    if (((ChartValues<int>)livechart_players.Series[i].Values)[0] != currentPlayers)
-                    {
-                        livechart_players.Series[i].Values[0] = currentPlayers;
-                    }
+            if (typePlayers.Count == 0) { return; }
 
-                    typePlayers.Remove((livechart_players.Series[i].Title, currentPlayers));
-                }
-                else
-                {
-                    livechart_players.Series.RemoveAt(i--);
-                }
-            }
-
-            // Add ServerType Series if not exist
-            foreach (var item in typePlayers)
+            int maxValue = Math.Max(typePlayers.Select(s => s.Item2).Max() + 5, 10);
+            for (int i = 0; i < typePlayers.Count; i++)
             {
-                livechart_players.Series.Add(new ColumnSeries
+                var item = typePlayers[i];
+                livechart_players.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var column = new Grid { Margin = new Thickness(6, 0, 6, 0), ToolTip = $"{item.Item1}: {item.Item2}" };
+                column.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                column.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var barHost = new Grid { MinHeight = 130 };
+                barHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Math.Max(maxValue - item.Item2, 0), GridUnitType.Star) });
+                barHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Math.Max(item.Item2, 0.1), GridUnitType.Star) });
+
+                var bar = new Border
                 {
-                    Title = item.Item1,
-                    Values = new ChartValues<int> { item.Item2 }
-                });
+                    Background = Brushes.Goldenrod,
+                    MinHeight = item.Item2 > 0 ? 2 : 0,
+                    Margin = new Thickness(2, 0, 2, 0)
+                };
+                Grid.SetRow(bar, 1);
+                barHost.Children.Add(bar);
+
+                var label = new TextBlock
+                {
+                    Text = item.Item1,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxHeight = 36,
+                    Margin = new Thickness(0, 6, 0, 0)
+                };
+                Grid.SetRow(label, 1);
+
+                column.Children.Add(barHost);
+                column.Children.Add(label);
+                Grid.SetColumn(column, i);
+                livechart_players.Children.Add(column);
             }
         }
 
@@ -1135,7 +1234,7 @@ namespace WindowsGSM
                 analytics.SendRAM();
                 analytics.SendDisk();
             }
-            catch (Exception e)
+            catch
             {
                 // i basically just don't care when google analytics fail
             }
@@ -1353,27 +1452,19 @@ namespace WindowsGSM
 
             if (Installer != null)
             {
-                //Wait installer exit. Example: steamcmd.exe
-                await Task.Run(() =>
+                string installOutput = await WaitForInstallerOutput(Installer);
+
+                if (!gameServer.IsInstallValid() && installOutput.Contains("Missing configuration", StringComparison.OrdinalIgnoreCase))
                 {
-                    var reader = Installer.StandardOutput;
-                    while (!reader.EndOfStream)
+                    AppendInstallLogLine("SteamCMD was still completing first-run configuration. Retrying install once...");
+                    Log(newServerConfig.ServerID, "[NOTICE] SteamCMD missing configuration on first install attempt; retrying once.");
+
+                    Installer = await gameServer.Install();
+                    if (Installer != null)
                     {
-                        var nextLine = reader.ReadLine();
-                        if (nextLine.Contains("Logging in user "))
-                        {
-                            nextLine += Environment.NewLine + "Please send the Login Token:";
-                        }
-
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            textbox_InstallLog.AppendText(nextLine + Environment.NewLine);
-                            textbox_InstallLog.ScrollToEnd();
-                        });
+                        await WaitForInstallerOutput(Installer);
                     }
-
-                    Installer?.WaitForExit();
-                });
+                }
             }
 
             if (gameServer.IsInstallValid())
@@ -1411,7 +1502,7 @@ namespace WindowsGSM
                         var analytics = new GoogleAnalytics();
                         analytics.SendGameServerInstall(newServerConfig.ServerID, servergame);
                     }
-                    catch (Exception e)
+                    catch
                     {
                         // i basically just don't care when google analytics fail
                     }
@@ -1681,7 +1772,7 @@ namespace WindowsGSM
             var server = (ServerTable)ServerGrid.SelectedItem;
             if (server == null) { return; }
 
-            SendCommandAsync(server, command);
+            _ = SendCommandAsync(server, command);
         }
 
         private void Textbox_ServerCommand_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -2119,7 +2210,7 @@ namespace WindowsGSM
                     var analytics = new GoogleAnalytics();
                     analytics.SendGameServerStart(server.ID, server.Game);
                 }
-                catch (Exception e)
+                catch
                 {
                     // i basically just don't care when google analytics fail
                 }
@@ -2792,9 +2883,15 @@ namespace WindowsGSM
 
                 if (GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started)
                 {
+                    Process crashedProcess = GetServerMetadata(server.ID).Process;
+                    string crashLog = WriteGameServerCrashLog(server, crashedProcess, out string exitCode);
                     bool autoRestart = GetServerMetadata(serverId).AutoRestart;
                     _serverMetadata[int.Parse(server.ID)].ServerStatus = autoRestart ? ServerStatus.Restarting : ServerStatus.Stopped;
-                    Log(server.ID, "Server: Crashed");
+                    Log(server.ID, string.IsNullOrWhiteSpace(exitCode) ? "Server: Crashed" : $"Server: Crashed (Exit Code: {exitCode})");
+                    if (!string.IsNullOrWhiteSpace(crashLog))
+                    {
+                        Log(server.ID, $"[ERROR] Crash details: {crashLog}");
+                    }
                     SetServerStatus(server, autoRestart ? "Restarting" : "Stopped");
 
                     if (GetServerMetadata(serverId).DiscordAlert && GetServerMetadata(serverId).CrashAlert)
@@ -2992,7 +3089,7 @@ namespace WindowsGSM
                         var analytics = new GoogleAnalytics();
                         analytics.SendGameServerHeartBeat(server.Game, server.Name);
                     }
-                    catch (Exception e)
+                    catch
                     {
                         // i basically just don't care when google analytics fail
                     }
@@ -3167,6 +3264,59 @@ namespace WindowsGSM
             textBox_wgsmlog.ScrollToEnd();
         }
 
+        private async Task<string> WaitForInstallerOutput(Process installer)
+        {
+            if (installer == null) { return string.Empty; }
+
+            var output = new StringBuilder();
+            var tasks = new List<Task>();
+
+            if (installer.StartInfo.RedirectStandardOutput)
+            {
+                tasks.Add(ReadInstallerStream(installer.StandardOutput, output));
+            }
+
+            if (installer.StartInfo.RedirectStandardError)
+            {
+                tasks.Add(ReadInstallerStream(installer.StandardError, output));
+            }
+
+            tasks.Add(Task.Run(() => installer.WaitForExit()));
+            await Task.WhenAll(tasks);
+
+            return output.ToString();
+        }
+
+        private async Task ReadInstallerStream(StreamReader reader, StringBuilder output)
+        {
+            while (true)
+            {
+                string nextLine = await reader.ReadLineAsync();
+                if (nextLine == null) { break; }
+
+                if (nextLine.Contains("Logging in user "))
+                {
+                    nextLine += Environment.NewLine + "Please send the Login Token:";
+                }
+
+                lock (output)
+                {
+                    output.AppendLine(nextLine);
+                }
+
+                AppendInstallLogLine(nextLine);
+            }
+        }
+
+        private void AppendInstallLogLine(string text)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                textbox_InstallLog.AppendText(text + Environment.NewLine);
+                textbox_InstallLog.ScrollToEnd();
+            });
+        }
+
         public void DiscordBotLog(string logText)
         {
             string log = $"[{DateTime.Now.ToString("MM/dd/yyyy-HH:mm:ss")}] {logText}" + Environment.NewLine;
@@ -3179,6 +3329,159 @@ namespace WindowsGSM
             textBox_DiscordBotLog.AppendText(log);
             textBox_DiscordBotLog.Text = RemovedOldLog(textBox_DiscordBotLog.Text);
             textBox_DiscordBotLog.ScrollToEnd();
+        }
+
+        private string WriteGameServerCrashLog(ServerTable server, Process process, out string exitCode)
+        {
+            exitCode = string.Empty;
+
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string logDirectory = ServerPath.GetLogs("servers", server.ID);
+                Directory.CreateDirectory(logDirectory);
+
+                string crashLogPath = Path.Combine(logDirectory, $"crash_{timestamp}.log");
+                var log = new StringBuilder();
+                log.AppendLine($"WindowsGSM crash details");
+                log.AppendLine($"Time: {DateTime.Now:MM/dd/yyyy-HH:mm:ss}");
+                log.AppendLine($"Server ID: {server.ID}");
+                log.AppendLine($"Server Name: {server.Name}");
+                log.AppendLine($"Game: {server.Game}");
+                log.AppendLine($"PID: {server.PID}");
+
+                if (process != null)
+                {
+                    try
+                    {
+                        exitCode = process.ExitCode.ToString();
+                        log.AppendLine($"Exit Code: {exitCode}");
+                    }
+                    catch (Exception e)
+                    {
+                        log.AppendLine($"Exit Code: unavailable ({e.Message})");
+                    }
+
+                    try
+                    {
+                        log.AppendLine($"Executable: {process.StartInfo.FileName}");
+                        log.AppendLine($"Arguments: {process.StartInfo.Arguments}");
+                        log.AppendLine($"Working Directory: {process.StartInfo.WorkingDirectory}");
+                    }
+                    catch (Exception e)
+                    {
+                        log.AppendLine($"Process start info unavailable: {e.Message}");
+                    }
+                }
+
+                log.AppendLine();
+                log.AppendLine("Captured console output:");
+                string consoleOutput = GetServerMetadata(server.ID)?.ServerConsole?.Get();
+                AppendLines(log, consoleOutput, 200);
+
+                log.AppendLine();
+                log.AppendLine("Recent server log files:");
+                AppendRecentServerLogs(log, server.ID, 3, 200);
+
+                File.WriteAllText(crashLogPath, log.ToString());
+                return crashLogPath.Replace(WGSM_PATH, string.Empty).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch (Exception e)
+            {
+                return $"failed to write crash details ({e.Message})";
+            }
+        }
+
+        private static void AppendLines(StringBuilder builder, string text, int maxLines)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                builder.AppendLine("(none captured)");
+                return;
+            }
+
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            foreach (string line in lines.Skip(Math.Max(lines.Length - maxLines, 0)))
+            {
+                builder.AppendLine(line);
+            }
+        }
+
+        private static void AppendRecentServerLogs(StringBuilder builder, string serverId, int maxFiles, int maxLinesPerFile)
+        {
+            string serverFilesPath = ServerPath.GetServersServerFiles(serverId);
+            if (!Directory.Exists(serverFilesPath))
+            {
+                builder.AppendLine("(serverfiles directory not found)");
+                return;
+            }
+
+            var files = Directory.EnumerateFiles(serverFilesPath, "*.*", SearchOption.AllDirectories)
+                .Where(path => path.EndsWith(".log", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                .Select(path => new FileInfo(path))
+                .Where(file => file.Exists)
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Take(maxFiles)
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                builder.AppendLine("(no .log or .txt files found under serverfiles)");
+                return;
+            }
+
+            foreach (var file in files)
+            {
+                builder.AppendLine();
+                builder.AppendLine($"--- {file.FullName.Replace(serverFilesPath, string.Empty).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)} ({file.LastWriteTime:MM/dd/yyyy-HH:mm:ss}) ---");
+                try
+                {
+                    string text = ReadSharedText(file.FullName);
+                    AppendDiagnosticLines(builder, text, 50);
+                    AppendLines(builder, text, maxLinesPerFile);
+                }
+                catch (Exception e)
+                {
+                    builder.AppendLine($"Failed to read log file: {e.Message}");
+                }
+            }
+        }
+
+        private static void AppendDiagnosticLines(StringBuilder builder, string text, int maxMatches)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            string[] markers = { " ERR ", "ERROR", "EXC", "Exception", "Failed", "Invalid", "Could not", "denied", "shutting down" };
+            var matches = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Where(line => markers.Any(marker => line.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0))
+                .Take(maxMatches)
+                .ToList();
+
+            if (matches.Count == 0)
+            {
+                return;
+            }
+
+            builder.AppendLine("Diagnostic lines:");
+            foreach (string line in matches)
+            {
+                builder.AppendLine(line);
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("Log tail:");
+        }
+
+        private static string ReadSharedText(string path)
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
         }
 
         private string RemovedOldLog(string logText)
@@ -3472,31 +3775,28 @@ namespace WindowsGSM
         {
             try
             {
-                using (WebClient webClient = new WebClient())
+                string json = await WindowsGSM.Functions.Http.DownloadStringAsync($"https://windowsgsm.com/patreon/patreonAuth.php?auth={authKey}");
+                bool success = JObject.Parse(json)["success"].ToString() == "True";
+
+                if (success)
                 {
-                    string json = await webClient.DownloadStringTaskAsync($"https://windowsgsm.com/patreon/patreonAuth.php?auth={authKey}");
-                    bool success = JObject.Parse(json)["success"].ToString() == "True";
+                    string name = JObject.Parse(json)["name"].ToString();
+                    string type = JObject.Parse(json)["type"].ToString();
 
-                    if (success)
-                    {
-                        string name = JObject.Parse(json)["name"].ToString();
-                        string type = JObject.Parse(json)["type"].ToString();
+                    g_DonorType = type;
 
-                        g_DonorType = type;
+                    g_DiscordBot.SetDonorType(g_DonorType);
+                    comboBox_Themes.IsEnabled = true;
 
-                        g_DiscordBot.SetDonorType(g_DonorType);
-                        comboBox_Themes.IsEnabled = true;
-
-                        ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
-
-                        return (true, name);
-                    }
-
-                    MahAppSwitch_DonorConnect.IsOn = false;
-
-                    //Set theme
                     ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
+
+                    return (true, name);
                 }
+
+                MahAppSwitch_DonorConnect.IsOn = false;
+
+                //Set theme
+                ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
             }
             catch
             {
@@ -3551,102 +3851,20 @@ namespace WindowsGSM
                 return;
             }
 
-            var settings = new MetroDialogSettings
-            {
-                AffirmativeButtonText = "Update",
-                DefaultButtonFocus = MessageDialogResult.Affirmative
-            };
-
-            var result = await this.ShowMessageAsync("Software Updates", $"Version {latestVersion} is available, would you like to update now?\n\nWarning: All servers will be shutdown!", MessageDialogStyle.AffirmativeAndNegative, settings);
-
-            if (result.ToString().Equals("Affirmative"))
-            {
-                string installPath = ServerPath.GetBin();
-                Directory.CreateDirectory(installPath);
-
-                string filePath = Path.Combine(installPath, "WindowsGSM-Updater.exe");
-
-                if (!File.Exists(filePath))
-                {
-                    //Download WindowsGSM-Updater.exe
-                    controller = await this.ShowProgressAsync("Downloading WindowsGSM-Updater...", "Please wait...");
-                    controller.SetIndeterminate();
-                    bool success = await DownloadWindowsGSMUpdater();
-                    await controller.CloseAsync();
-                }
-
-                if (File.Exists(filePath))
-                {
-                    //Kill all the server
-                    for (int i = 0; i <= MAX_SERVER; i++)
-                    {
-                        if (GetServerMetadata(i) == null || GetServerMetadata(i).Process == null)
-                        {
-                            continue;
-                        }
-
-                        if (!GetServerMetadata(i).Process.HasExited)
-                        {
-                            _serverMetadata[i].Process.Kill();
-                        }
-                    }
-
-                    //Run WindowsGSM-Updater.exe
-                    Process updater = new Process
-                    {
-                        StartInfo =
-                        {
-                            WorkingDirectory = installPath,
-                            FileName = filePath,
-                            Arguments = "-autostart -forceupdate"
-                        }
-                    };
-                    updater.Start();
-
-                    Close();
-                }
-                else
-                {
-                    await this.ShowMessageAsync("Software Updates", $"Fail to download WindowsGSM-Updater.exe");
-                }
-            }
+            await this.ShowMessageAsync("Software Updates", $"Version {latestVersion} is available. Please update manually by replacing the exe found in https://github.com/Raziel7893/WindowsGSM/releases");
         }
 
         private async Task<string> GetLatestVersion()
         {
             try
             {
-                var webRequest = WebRequest.Create("https://api.github.com/repos/WindowsGSM/WindowsGSM/releases/latest") as HttpWebRequest;
-                webRequest.Method = "GET";
-                webRequest.UserAgent = "Anything";
-                webRequest.ServicePoint.Expect100Continue = false;
-                var response = await webRequest.GetResponseAsync();
-                using (var responseReader = new StreamReader(response.GetResponseStream()))
-                    return JObject.Parse(responseReader.ReadToEnd())["tag_name"].ToString();
+                string json = await WindowsGSM.Functions.Http.DownloadStringAsync("https://api.github.com/repos/Raziel7893/WindowsGSM/releases/latest");
+                return JObject.Parse(json)["tag_name"].ToString();
             }
             catch
             {
                 return null;
             }
-        }
-
-        private async Task<bool> DownloadWindowsGSMUpdater()
-        {
-            string filePath = ServerPath.GetBin("WindowsGSM-Updater.exe");
-
-            try
-            {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync("https://github.com/WindowsGSM/WindowsGSM-Updater/releases/latest/download/WindowsGSM-Updater.exe", filePath);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine($"Github.WindowsGSM-Updater.exe {e}");
-            }
-
-            return File.Exists(filePath);
         }
 
         private async void Help_AboutWindowsGSM_Click(object sender, RoutedEventArgs e)
@@ -3828,10 +4046,7 @@ namespace WindowsGSM
         {
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    return webClient.DownloadString("https://ipinfo.io/ip").Replace("\n", string.Empty);
-                }
+                return WindowsGSM.Functions.Http.DownloadString("https://ipinfo.io/ip").Replace("\n", string.Empty);
             }
             catch
             {
@@ -3851,8 +4066,10 @@ namespace WindowsGSM
             }
             else
             {
-                WindowState = WindowState.Normal;
                 Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                Focus();
             }
         }
 

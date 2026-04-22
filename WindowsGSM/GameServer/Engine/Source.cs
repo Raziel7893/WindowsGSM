@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -24,7 +24,7 @@ namespace WindowsGSM.GameServer.Engine
         public Functions.ServerConfig serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public string StartPath = "srcds.exe";
         public bool AllowsEmbedConsole = true;

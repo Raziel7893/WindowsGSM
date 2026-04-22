@@ -12,7 +12,7 @@ namespace WindowsGSM.GameServer
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Minecraft: Pocket Edition Server (PocketMine-MP)";
         public string StartPath = @"bin\php\php.exe";
@@ -141,10 +141,7 @@ namespace WindowsGSM.GameServer
             string PHPzipPath = Path.Combine(serverFilesPath, fileName);
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync(installUrl, PHPzipPath);
-                }
+                await WindowsGSM.Functions.Http.DownloadFileAsync(installUrl, PHPzipPath);
 
                 //Extract PHP-7.3-Windows-x64.zip and delete the zip
                 await Task.Run(() => ZipFile.ExtractToDirectory(PHPzipPath, serverFilesPath));
@@ -161,10 +158,7 @@ namespace WindowsGSM.GameServer
             installUrl = "https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/PocketMine-MP.phar";
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync(installUrl, Path.Combine(serverFilesPath, fileName));
-                }
+                await WindowsGSM.Functions.Http.DownloadFileAsync(installUrl, Path.Combine(serverFilesPath, fileName));
             }
             catch
             {
@@ -197,10 +191,7 @@ namespace WindowsGSM.GameServer
             string installUrl = "https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/PocketMine-MP.phar";
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync(installUrl, PMMPPath);
-                } 
+                await WindowsGSM.Functions.Http.DownloadFileAsync(installUrl, PMMPPath);
             }
             catch
             {
@@ -259,17 +250,14 @@ namespace WindowsGSM.GameServer
         {
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    string remoteUrl = "https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/build_info.json";
-                    string html = await webClient.DownloadStringTaskAsync(remoteUrl);
-                    Regex regex = new Regex("\"build_number\":\\D{0,}(.*?),");
-                    var matches = regex.Matches(html);
+                string remoteUrl = "https://jenkins.pmmp.io/job/PocketMine-MP/lastStableBuild/artifact/build_info.json";
+                string html = await WindowsGSM.Functions.Http.DownloadStringAsync(remoteUrl);
+                Regex regex = new Regex("\"build_number\":\\D{0,}(.*?),");
+                var matches = regex.Matches(html);
 
-                    if (matches.Count == 1 && matches[0].Groups.Count == 2)
-                    {
-                        return matches[0].Groups[1].Value;
-                    }
+                if (matches.Count == 1 && matches[0].Groups.Count == 2)
+                {
+                    return matches[0].Groups[1].Value;
                 }
             }
             catch

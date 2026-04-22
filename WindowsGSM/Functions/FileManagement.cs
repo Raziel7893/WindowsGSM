@@ -2,6 +2,7 @@
 using ICSharpCode.SharpZipLib.Tar;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace WindowsGSM.Functions
@@ -22,7 +23,7 @@ namespace WindowsGSM.Functions
                 {
                     using (Stream inStream = File.OpenRead(sourceArchiveFileName))
                     using (Stream gzipStream = new GZipInputStream(inStream))
-                    using (TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream))
+                    using (TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, Encoding.UTF8))
                     {
                         tarArchive.ExtractContents(destinationDirectoryName);
                     }

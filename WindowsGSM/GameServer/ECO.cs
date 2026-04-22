@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 
@@ -18,7 +18,7 @@ namespace WindowsGSM.GameServer
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Eco Dedicated Server";
         public string StartPath = @"EcoServer.exe";

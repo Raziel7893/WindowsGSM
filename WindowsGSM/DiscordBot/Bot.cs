@@ -17,8 +17,6 @@ namespace WindowsGSM.DiscordBot
 	{
 		private DiscordSocketClient _client;
 		private string _donorType;
-		private SocketTextChannel _dashboardTextChannel;
-		private RestUserMessage _dashboardMessage;
 		private CancellationTokenSource _cancellationTokenSource;
 		private readonly IServiceProvider _serviceProvider = CreateServices();
 		private Interactions _interactions;
@@ -159,18 +157,6 @@ namespace WindowsGSM.DiscordBot
                 _client.Dispose();
                 _client = null;
 
-                try
-                {
-                    if (_dashboardTextChannel != null && _dashboardMessage != null)
-                    {
-                        await _dashboardTextChannel.DeleteMessageAsync(_dashboardMessage);
-                        _dashboardMessage = null;
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
             }
         }
 

@@ -162,7 +162,7 @@ namespace WindowsGSM.Functions
             if (text.Contains("join code", StringComparison.InvariantCultureIgnoreCase) || text.Contains("joincode",StringComparison.InvariantCultureIgnoreCase))
             {
                 JoinCodeLine = text;
-                SendWebhookAsync(text);
+                _ = SendWebhookAsync(text);
             }
 
             _consoleList.Add(text);

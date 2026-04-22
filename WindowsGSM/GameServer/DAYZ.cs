@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -23,7 +23,7 @@ namespace WindowsGSM.GameServer
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "DayZ Dedicated Server";
         public string StartPath = "DayZServer_x64.exe";

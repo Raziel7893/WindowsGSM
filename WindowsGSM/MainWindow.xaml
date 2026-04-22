@@ -4,14 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WindowsGSM"
-        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"          
-        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
         Title="WindowsGSM" 
         Height="650" 
         Width="1000" 
         Icon="Images\WindowsGSM-Icon-Border.ico"
         ResizeMode="CanResizeWithGrip"
+        IsWindowDraggable="True"
         MinHeight="650"
         MinWidth="1000"
         Closing="Window_Closing"
@@ -504,15 +504,8 @@
                   </Grid>
                </DockPanel>
 
-               <DockPanel DockPanel.Dock="Top">
-                  <lvc:CartesianChart x:Name="livechart_players" LegendLocation="Right" Margin="0,10,0,0">
-                     <lvc:CartesianChart.AxisX>
-                        <lvc:Axis x:Name="livechart_players_axisX" Title="" Labels=""></lvc:Axis>
-                     </lvc:CartesianChart.AxisX>
-                     <lvc:CartesianChart.AxisY>
-                        <lvc:Axis x:Name="livechart_players_axisY" Title="Players" MinValue="0" MaxValue="10"/>
-                     </lvc:CartesianChart.AxisY>
-                  </lvc:CartesianChart>
+               <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0" MinHeight="180">
+                  <Grid x:Name="livechart_players"/>
                </DockPanel>
             </DockPanel>
          </Grid>

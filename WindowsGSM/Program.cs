@@ -47,7 +47,7 @@ namespace WindowsGSM
                     if (stream != null)
                     {
                         var assemblyData = new byte[stream.Length];
-                        stream.Read(assemblyData, 0, assemblyData.Length);
+                        stream.ReadExactly(assemblyData, 0, assemblyData.Length);
                         return Assembly.Load(assemblyData);
                     }
                 }

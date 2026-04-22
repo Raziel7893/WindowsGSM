@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.IO;
 using System.Net;
 using System.IO.Compression;
@@ -78,9 +78,8 @@ namespace WindowsGSM.Functions
             try
             {
                 string zipPath = Functions.ServerPath.GetServersServerFiles(server.ID, "dzsalmodserver.zip");
-                using (WebClient webClient = new WebClient())
                 {
-                    await webClient.DownloadFileTaskAsync("http://dayzsalauncher.com/releases/dzsalmodserver.zip", zipPath);
+                    await WindowsGSM.Functions.Http.DownloadFileAsync("http://dayzsalauncher.com/releases/dzsalmodserver.zip", zipPath);
                     await Task.Run(() => { try { ZipFile.ExtractToDirectory(zipPath, Functions.ServerPath.GetServersServerFiles(server.ID)); } catch { } });
                     await Task.Run(() => { try { File.Delete(zipPath); } catch { } });
                 }
@@ -110,9 +109,8 @@ namespace WindowsGSM.Functions
             {
                 string basePath = Functions.ServerPath.GetServersServerFiles(server.ID);
                 string zipPath = Functions.ServerPath.GetServersServerFiles(server.ID, "Oxide.Rust.zip");
-                using (WebClient webClient = new WebClient())
                 {
-                    await webClient.DownloadFileTaskAsync("https://github.com/OxideMod/Oxide.Rust/releases/latest/download/Oxide.Rust.zip", zipPath);
+                    await WindowsGSM.Functions.Http.DownloadFileAsync("https://github.com/OxideMod/Oxide.Rust/releases/latest/download/Oxide.Rust.zip", zipPath);
                 }
 
                 bool success = await Task.Run(() =>
@@ -146,13 +144,8 @@ namespace WindowsGSM.Functions
         {
             try
             {
-                var webRequest = WebRequest.Create("https://api.github.com/repos/OxideMod/Oxide.Rust/releases/latest") as HttpWebRequest;
-                webRequest.Method = "GET";
-                webRequest.Headers["User-Agent"] = "Anything";
-                webRequest.ServicePoint.Expect100Continue = false;
-                var response = await webRequest.GetResponseAsync();
-                using (var responseReader = new StreamReader(response.GetResponseStream()))
-                return JObject.Parse(responseReader.ReadToEnd())["tag_name"].ToString();
+                string json = await Http.DownloadStringAsync("https://api.github.com/repos/OxideMod/Oxide.Rust/releases/latest");
+                return JObject.Parse(json)["tag_name"].ToString();
             }
             catch
             {
