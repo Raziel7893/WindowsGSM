@@ -163,7 +163,7 @@ namespace WindowsGSM.GameServer
                     return null;
                 }
 
-                JavaHelper.JREDownloadTaskResult taskResult = await JavaHelper.DownloadJREToServer(_serverData.ServerID);
+                JavaHelper.JREDownloadTaskResult taskResult = await JavaHelper.DownloadJREToServer(_serverData.ServerID, "25");
                 if (!taskResult.installed)
                 {
                     Error = taskResult.error;
