@@ -6,6 +6,8 @@
   - BackupConfig now supports individual/multiple save locations via config
   - File Will be Created After starting a Server the First time with backup enabled
   - It can be found by clicking Browse => Server Configs => BackupConfig.cfg
+  - Backup archives are now written directly from the source paths into the zip file instead of copying everything to a temporary folder first
+  - Backup path and save path entries can now follow the current WindowsGSM root when the app folder is copied or moved, and corrected paths are written back to BackupConfig.cfg
   - Hint: Do not modify WindowsGSM.cfg manually, everything is changable via the Programm itself, the Syntax of that file is quite easy to destry and your server will disappear from wgsm if you mess it up 
 - Send Join Codes via Webhook
   - Will send the joincode text aslong as the autostart or autorestart alert is activated in the webhook settings
@@ -158,6 +160,11 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Removed the old automatic `WindowsGSM-Updater.exe` flow.
   - Latest release checks now point at `Raziel7893/WindowsGSM`.
   - Update prompt now tells users to manually replace the EXE from the Raziel7893 releases page.
+
+- Improved backup performance and portability
+  - Backups now stream files directly into `System.IO.Compression.ZipArchive` instead of copying the configured source paths to a temporary folder before zipping.
+  - `BackupConfig.cfg` path entries for `backuplocation` and `saveslocation` can now be rebased to the current `WGSM_PATH` when the WindowsGSM folder is copied or moved.
+  - Corrected rebased backup paths are persisted back into `BackupConfig.cfg`.
 
 - Cleaned warning-prone code
   - Converted optional `Notice` fields from unassigned fields to properties across game server classes.

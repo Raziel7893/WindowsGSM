@@ -123,28 +123,42 @@ $@"// Location where backup archives will be stored
 
         private void LoadConfig()
         {
+            bool modified = false;
+            var rewrittenLines = new List<string>();
+
             foreach (string rawLine in File.ReadLines(_configPath))
             {
                 string line = rawLine.Trim();
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//")) continue;
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//"))
+                {
+                    rewrittenLines.Add(rawLine);
+                    continue;
+                }
 
                 int equalsIndex = line.IndexOf('=');
-                if (equalsIndex <= 0) continue;
+                if (equalsIndex <= 0)
+                {
+                    rewrittenLines.Add(rawLine);
+                    continue;
+                }
 
                 string key = line.Substring(0, equalsIndex).Trim().ToLowerInvariant();
                 string value = line.Substring(equalsIndex + 1).Trim().Trim('"');
                 value = Environment.ExpandEnvironmentVariables(value);
+                string rewrittenValue = value;
 
                 switch (key)
                 {
                     case SettingName.BackupLocation:
-                        BackupLocation = value;
+                        BackupLocation = NormalizePortablePath(value, "Backups", _serverId);
+                        rewrittenValue = BackupLocation;
                         break;
 
                     case SettingName.SavesLocation:
                         SavesLocations = value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                                              .Select(x => x.Trim())
+                                              .Select(x => NormalizePortablePath(x.Trim(), "Servers", _serverId, "serverfiles"))
                                               .ToList();
+                        rewrittenValue = string.Join(";", SavesLocations);
                         break;
 
                     case SettingName.MaximumBackups:
@@ -152,6 +166,15 @@ $@"// Location where backup archives will be stored
                         MaximumBackups = int.TryParse(value, out max) ? (max <= 0 ? 1 : max) : DefaultMaximumBackups;
                         break;
                 }
+
+                string rewrittenLine = rawLine;
+                if (key == SettingName.BackupLocation || key == SettingName.SavesLocation)
+                {
+                    rewrittenLine = $"{line.Substring(0, equalsIndex).Trim()}=\"{rewrittenValue}\"";
+                    modified |= !string.Equals(value, rewrittenValue, StringComparison.OrdinalIgnoreCase);
+                }
+
+                rewrittenLines.Add(rewrittenLine);
             }
             if (string.IsNullOrWhiteSpace(BackupLocation))
             {
@@ -160,6 +183,65 @@ $@"// Location where backup archives will be stored
             if (SavesLocations == null || SavesLocations.Count == 0)
             {
                 SavesLocations = new[] { Path.Combine(MainWindow.WGSM_PATH, "Servers", _serverId, "serverfiles") }.ToList();
+            }
+
+            if (modified)
+            {
+                File.WriteAllLines(_configPath, rewrittenLines);
+            }
+        }
+
+        private static string NormalizePortablePath(string value, params string[] expectedTail)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            string normalized = value.Trim().Trim('"');
+
+            try
+            {
+                if (!Path.IsPathRooted(normalized))
+                {
+                    return normalized;
+                }
+
+                string currentRoot = Path.GetFullPath(MainWindow.WGSM_PATH)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string fullValue = Path.GetFullPath(normalized)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                if (fullValue.StartsWith(currentRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    return fullValue;
+                }
+
+                if (expectedTail == null || expectedTail.Length == 0)
+                {
+                    return fullValue;
+                }
+
+                string[] segments = fullValue.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length < expectedTail.Length)
+                {
+                    return fullValue;
+                }
+
+                int startIndex = segments.Length - expectedTail.Length;
+                for (int i = 0; i < expectedTail.Length; i++)
+                {
+                    if (!string.Equals(segments[startIndex + i], expectedTail[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        return fullValue;
+                    }
+                }
+
+                return Path.Combine(new[] { currentRoot }.Concat(expectedTail).ToArray());
+            }
+            catch
+            {
+                return normalized;
             }
         }
     }

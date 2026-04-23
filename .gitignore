@@ -9,3 +9,4 @@ WindowsGSM.sln.DotSettings.user
 *.csproj.user
 *.Backup.tmp
 publish/
+release/

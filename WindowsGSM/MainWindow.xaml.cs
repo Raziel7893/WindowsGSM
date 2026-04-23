@@ -2862,7 +2862,16 @@ namespace WindowsGSM
                 {
                     try
                     {
-                        ZipFile.CreateFromDirectory(startPath, zipFile);
+                        if (File.Exists(zipFile))
+                        {
+                            File.Delete(zipFile);
+                        }
+
+                        using (FileStream zipStream = new FileStream(zipFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                        using (ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
+                        {
+                            AddDirectoryToArchive(archive, startPath, string.Empty);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -2885,62 +2894,58 @@ namespace WindowsGSM
                 return true;
             }
 
-            string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-            string tempRoot = Path.Combine(Path.GetTempPath(), "WindowsGSM_Backup", server.ID, timestamp);
             try
             {
-                void DirectoryCopy(string src, string dst)
-                {
-                    var dir = new DirectoryInfo(src);
-                    if (!dir.Exists) return;
-                    Directory.CreateDirectory(dst);
-
-                    foreach (var file in dir.GetFiles())
-                    {
-                        file.CopyTo(Path.Combine(dst, file.Name), true);
-                    }
-
-                    foreach (var sub in dir.GetDirectories())
-                    {
-                        DirectoryCopy(sub.FullName, Path.Combine(dst, sub.Name));
-                    }
-                }
-                Directory.CreateDirectory(tempRoot);
                 var manifest = new List<string>();
-                for (int i = 0; i < saves.Count; i++)
-                {
-                    string original = saves[i] ?? string.Empty;
-                    original = Environment.ExpandEnvironmentVariables(original).Trim();
-                    manifest.Add($"{i}|{original}");
-
-                    string destSub = Path.Combine(tempRoot, $"save_{i}");
-                    if (string.IsNullOrWhiteSpace(original))
-                    {
-                        Directory.CreateDirectory(destSub);
-                        continue;
-                    }
-
-                    if (Directory.Exists(original))
-                    {
-                        DirectoryCopy(original, destSub);
-                    }
-                    else if (File.Exists(original))
-                    {
-                        Directory.CreateDirectory(destSub);
-                        File.Copy(original, Path.Combine(destSub, Path.GetFileName(original)), true);
-                    }
-                    else
-                    {
-                        Directory.CreateDirectory(destSub);
-                    }
-                }
-                File.WriteAllLines(Path.Combine(tempRoot, "backup_manifest.txt"), manifest);
                 string error = string.Empty;
                 await Task.Run(() =>
                 {
                     try
                     {
-                        ZipFile.CreateFromDirectory(tempRoot, zipFile);
+                        if (File.Exists(zipFile))
+                        {
+                            File.Delete(zipFile);
+                        }
+
+                        using (FileStream zipStream = new FileStream(zipFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                        using (ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
+                        {
+                            for (int i = 0; i < saves.Count; i++)
+                            {
+                                string original = saves[i] ?? string.Empty;
+                                original = Environment.ExpandEnvironmentVariables(original).Trim();
+                                manifest.Add($"{i}|{original}");
+
+                                string entryRoot = $"save_{i}";
+                                if (string.IsNullOrWhiteSpace(original))
+                                {
+                                    archive.CreateEntry(entryRoot + "/");
+                                    continue;
+                                }
+
+                                if (Directory.Exists(original))
+                                {
+                                    AddDirectoryToArchive(archive, original, entryRoot);
+                                }
+                                else if (File.Exists(original))
+                                {
+                                    AddFileToArchive(archive, original, CombineArchivePath(entryRoot, Path.GetFileName(original)));
+                                }
+                                else
+                                {
+                                    archive.CreateEntry(entryRoot + "/");
+                                }
+                            }
+
+                            ZipArchiveEntry manifestEntry = archive.CreateEntry("backup_manifest.txt");
+                            using (StreamWriter writer = new StreamWriter(manifestEntry.Open()))
+                            {
+                                foreach (string line in manifest)
+                                {
+                                    writer.WriteLine(line);
+                                }
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
@@ -2962,18 +2967,71 @@ namespace WindowsGSM
                 Log(server.ID, "Server: Fail to backup");
                 Log(server.ID, $"[ERROR] {ex.Message}");
                 SetServerStatus(server, "Stopped");
-                try { Directory.Delete(tempRoot, true); } catch { }
                 return false;
-            }
-            finally
-            {
-                try { Directory.Delete(tempRoot, true); } catch { }
             }
 
             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
             Log(server.ID, "Server: Backuped");
             SetServerStatus(server, "Stopped");
             return true;
+        }
+
+        private static void AddDirectoryToArchive(ZipArchive archive, string sourceDirectory, string entryRoot)
+        {
+            string normalizedRoot = NormalizeArchivePath(entryRoot).TrimEnd('/');
+            DirectoryInfo directory = new DirectoryInfo(sourceDirectory);
+
+            if (!directory.Exists)
+            {
+                return;
+            }
+
+            FileInfo[] files = directory.GetFiles("*", SearchOption.AllDirectories);
+            if (files.Length == 0)
+            {
+                archive.CreateEntry(string.IsNullOrEmpty(normalizedRoot) ? directory.Name + "/" : normalizedRoot + "/");
+                return;
+            }
+
+            foreach (FileInfo file in files)
+            {
+                string relativePath = Path.GetRelativePath(sourceDirectory, file.FullName);
+                string entryName = string.IsNullOrEmpty(normalizedRoot)
+                    ? NormalizeArchivePath(relativePath)
+                    : CombineArchivePath(normalizedRoot, relativePath);
+                AddFileToArchive(archive, file.FullName, entryName);
+            }
+        }
+
+        private static void AddFileToArchive(ZipArchive archive, string sourceFile, string entryName)
+        {
+            ZipArchiveEntry entry = archive.CreateEntry(NormalizeArchivePath(entryName));
+            using Stream input = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using Stream output = entry.Open();
+            input.CopyTo(output);
+        }
+
+        private static string CombineArchivePath(string left, string right)
+        {
+            string normalizedLeft = NormalizeArchivePath(left).TrimEnd('/');
+            string normalizedRight = NormalizeArchivePath(right).TrimStart('/');
+
+            if (string.IsNullOrEmpty(normalizedLeft))
+            {
+                return normalizedRight;
+            }
+
+            if (string.IsNullOrEmpty(normalizedRight))
+            {
+                return normalizedLeft;
+            }
+
+            return normalizedLeft + "/" + normalizedRight;
+        }
+
+        private static string NormalizeArchivePath(string path)
+        {
+            return (path ?? string.Empty).Replace('\\', '/');
         }
 
         private async Task<bool> GameServer_RestoreBackup(ServerTable server, string backupFile)
