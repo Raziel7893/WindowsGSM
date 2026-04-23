@@ -56,6 +56,13 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Added `appveyor.yml` so AppVeyor installs the .NET 10 SDK before building.
   - Build now uses the installed .NET SDK directly instead of AppVeyor's older default MSBuild/.NET SDK.
   - Fixed AppVeyor YAML command quoting for the `dotnet build` step.
+  - Added `skip_branch_with_pr` to reduce duplicate AppVeyor branch builds when a PR build exists.
+
+- Updated GitHub Actions CI
+  - Updated `.github/workflows/build.yml` to use `actions/checkout@v4` and `actions/setup-dotnet@v4`.
+  - GitHub Actions now builds with the .NET 10 SDK via `dotnet build`.
+  - Opted JavaScript actions into Node.js 24 with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`.
+  - Branch protection should require the `Build` GitHub Actions check and the AppVeyor PR check, not duplicate push/branch contexts.
 
 - Replaced obsolete HTTP APIs
   - Added `WindowsGSM/Functions/Http.cs` as a shared `HttpClient` helper.
@@ -132,5 +139,9 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
 
 - Package/project cleanup
   - Removed old or duplicate package references such as old `Discord.Net.WebSocket`, `LiveCharts.Wpf`, `Microsoft.CSharp`, and other unused framework compatibility packages.
+  - Removed the checked-in legacy NuGet `packages/` folder and now rely on `PackageReference` restore.
+  - Removed stale `WindowsGSM.csproj.Backup.tmp` and `WindowsGSM.csproj.user` files from source control.
+  - Removed old embedded package DLL/resource entries and the unused `ReferencesEx` assembly resolver path.
+  - Added ignore rules for `packages/`, `*.csproj.user`, and `*.Backup.tmp`.
   - Kept required packages for Discord, Roslyn compilation, MahApps, RCON, cron, zip, and management support.
   - Bumped assembly version/file version to `1.25.1.19`.
