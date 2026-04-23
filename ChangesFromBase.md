@@ -42,6 +42,8 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
     - Keep broad executable allow as a fallback for games/plugins without explicit firewall metadata.
 ==============================================================================
 
+## Cosmetic change
+
 ## Changes
 - Updated WindowsGSM from .NET 8 to .NET 10
   - Changed the main WindowsGSM target framework to `net10.0-windows`.
