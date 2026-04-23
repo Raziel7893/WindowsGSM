@@ -139,6 +139,25 @@ namespace WindowsGSM
             Crashed = 13
         }
 
+        private enum DashboardResourceMetric
+        {
+            CPU,
+            Memory
+        }
+
+        private sealed class ServerResourceSample
+        {
+            public DateTime Timestamp { get; set; }
+            public double CpuPercent { get; set; }
+            public double MemoryMb { get; set; }
+        }
+
+        private sealed class ProcessUsageSample
+        {
+            public TimeSpan TotalProcessorTime { get; set; }
+            public DateTime Timestamp { get; set; }
+        }
+
         public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public static readonly int MAX_SERVER = 256;
         public static readonly string WGSM_PATH = GetApplicationPath();
@@ -154,6 +173,23 @@ namespace WindowsGSM
 
         private readonly List<System.Windows.Controls.CheckBox> _checkBoxes = new List<System.Windows.Controls.CheckBox>();
         private readonly Dictionary<string, System.Windows.Controls.TextBox> _editConfigCustomSettingTextBoxes = new Dictionary<string, System.Windows.Controls.TextBox>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<ServerResourceSample>> _serverResourceSamples = new Dictionary<string, List<ServerResourceSample>>();
+        private readonly Dictionary<string, ProcessUsageSample> _lastProcessUsageSamples = new Dictionary<string, ProcessUsageSample>();
+        private readonly Brush[] _dashboardResourceBrushes =
+        {
+            Brushes.RoyalBlue,
+            Brushes.ForestGreen,
+            Brushes.Goldenrod,
+            Brushes.MediumVioletRed,
+            Brushes.DarkOrange,
+            Brushes.DeepSkyBlue,
+            Brushes.MediumSeaGreen,
+            Brushes.IndianRed,
+            Brushes.SlateBlue,
+            Brushes.Teal
+        };
+        private static readonly TimeSpan DashboardResourceHistoryDuration = TimeSpan.FromHours(1);
+        private DashboardResourceMetric _dashboardResourceMetric = DashboardResourceMetric.CPU;
 
         private static string GetApplicationPath()
         {
@@ -1152,6 +1188,8 @@ namespace WindowsGSM
                 }
                 ServerGrid.Items.Refresh();
 
+                CaptureServerResourceSamples();
+                Refresh_DashboardResourceChart();
                 Refresh_DashBoard_LiveChart();
 
                 await Task.Delay(1000);
@@ -1222,6 +1260,324 @@ namespace WindowsGSM
                 Grid.SetColumn(column, i);
                 livechart_players.Children.Add(column);
             }
+        }
+
+        private void CaptureServerResourceSamples()
+        {
+            DateTime now = DateTime.Now;
+            DateTime cutoff = now - DashboardResourceHistoryDuration;
+            HashSet<string> visibleServerIds = new HashSet<string>();
+
+            foreach (ServerTable server in ServerGrid.Items.Cast<ServerTable>())
+            {
+                visibleServerIds.Add(server.ID);
+                var serverMetadata = GetServerMetadata(server.ID);
+
+                if (serverMetadata?.ServerStatus != ServerStatus.Started || serverMetadata.Process == null)
+                {
+                    _lastProcessUsageSamples.Remove(server.ID);
+                    PruneServerResourceSamples(server.ID, cutoff);
+                    continue;
+                }
+
+                try
+                {
+                    Process process = serverMetadata.Process;
+                    if (process.HasExited)
+                    {
+                        _lastProcessUsageSamples.Remove(server.ID);
+                        PruneServerResourceSamples(server.ID, cutoff);
+                        continue;
+                    }
+
+                    process.Refresh();
+                    TimeSpan totalProcessorTime = process.TotalProcessorTime;
+                    double cpuPercent = 0;
+
+                    if (_lastProcessUsageSamples.TryGetValue(server.ID, out var lastSample))
+                    {
+                        double elapsedMs = (now - lastSample.Timestamp).TotalMilliseconds;
+                        if (elapsedMs > 0)
+                        {
+                            double processorMs = (totalProcessorTime - lastSample.TotalProcessorTime).TotalMilliseconds;
+                            cpuPercent = processorMs / elapsedMs / Environment.ProcessorCount * 100.0;
+                            cpuPercent = Math.Max(0, Math.Min(100, cpuPercent));
+                        }
+                    }
+
+                    _lastProcessUsageSamples[server.ID] = new ProcessUsageSample
+                    {
+                        TotalProcessorTime = totalProcessorTime,
+                        Timestamp = now
+                    };
+
+                    if (!_serverResourceSamples.TryGetValue(server.ID, out var samples))
+                    {
+                        samples = new List<ServerResourceSample>();
+                        _serverResourceSamples[server.ID] = samples;
+                    }
+
+                    samples.Add(new ServerResourceSample
+                    {
+                        Timestamp = now,
+                        CpuPercent = cpuPercent,
+                        MemoryMb = process.WorkingSet64 / 1024.0 / 1024.0
+                    });
+
+                    samples.RemoveAll(sample => sample.Timestamp < cutoff);
+                }
+                catch
+                {
+                    _lastProcessUsageSamples.Remove(server.ID);
+                    PruneServerResourceSamples(server.ID, cutoff);
+                }
+            }
+
+            foreach (string serverId in _serverResourceSamples.Keys.Except(visibleServerIds).ToList())
+            {
+                PruneServerResourceSamples(serverId, cutoff);
+            }
+        }
+
+        private void PruneServerResourceSamples(string serverId, DateTime cutoff)
+        {
+            if (!_serverResourceSamples.TryGetValue(serverId, out var samples))
+            {
+                return;
+            }
+
+            samples.RemoveAll(sample => sample.Timestamp < cutoff);
+            if (samples.Count == 0)
+            {
+                _serverResourceSamples.Remove(serverId);
+            }
+        }
+
+        private void Refresh_DashboardResourceChart()
+        {
+            if (dashboard_resource_chart.ActualWidth <= 0 || dashboard_resource_chart.ActualHeight <= 0)
+            {
+                return;
+            }
+
+            dashboard_resource_chart.Children.Clear();
+            dashboard_resource_legend.Children.Clear();
+            UpdateDashboardResourceButtons();
+
+            DateTime now = DateTime.Now;
+            DateTime cutoff = now - DashboardResourceHistoryDuration;
+            var servers = ServerGrid.Items.Cast<ServerTable>()
+                .Where(server => _serverResourceSamples.TryGetValue(server.ID, out var samples) && samples.Any(sample => sample.Timestamp >= cutoff))
+                .OrderBy(server => int.TryParse(server.ID, out int id) ? id : int.MaxValue)
+                .ToList();
+
+            dashboard_resource_empty.Visibility = servers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (servers.Count == 0)
+            {
+                return;
+            }
+
+            double width = dashboard_resource_chart.ActualWidth;
+            double height = dashboard_resource_chart.ActualHeight;
+            double left = 46;
+            double top = 18;
+            double right = 18;
+            double bottom = 28;
+            double plotWidth = Math.Max(1, width - left - right);
+            double plotHeight = Math.Max(1, height - top - bottom);
+
+            double maxValue = servers
+                .SelectMany(server => _serverResourceSamples[server.ID].Where(sample => sample.Timestamp >= cutoff))
+                .Select(GetDashboardResourceSampleValue)
+                .DefaultIfEmpty(0)
+                .Max();
+            maxValue = GetDashboardResourceAxisMaximum(maxValue);
+
+            DrawDashboardResourceGrid(left, top, plotWidth, plotHeight, maxValue);
+
+            for (int index = 0; index < servers.Count; index++)
+            {
+                ServerTable server = servers[index];
+                Brush brush = GetDashboardResourceBrush(index);
+                var points = _serverResourceSamples[server.ID]
+                    .Where(sample => sample.Timestamp >= cutoff)
+                    .OrderBy(sample => sample.Timestamp)
+                    .Select(sample =>
+                    {
+                        double x = left + ((sample.Timestamp - cutoff).TotalSeconds / DashboardResourceHistoryDuration.TotalSeconds) * plotWidth;
+                        double y = top + plotHeight - (GetDashboardResourceSampleValue(sample) / maxValue) * plotHeight;
+                        return new Point(x, y);
+                    })
+                    .ToList();
+
+                if (points.Count == 1)
+                {
+                    points.Add(new Point(points[0].X + 1, points[0].Y));
+                }
+
+                var line = new System.Windows.Shapes.Polyline
+                {
+                    Stroke = brush,
+                    StrokeThickness = 2,
+                    Points = new PointCollection(points),
+                    ToolTip = $"{GetDashboardServerLabel(server)} {GetDashboardResourceMetricLabel()}"
+                };
+                dashboard_resource_chart.Children.Add(line);
+
+                AddDashboardResourceLegendItem(server, brush);
+            }
+        }
+
+        private void DrawDashboardResourceGrid(double left, double top, double plotWidth, double plotHeight, double maxValue)
+        {
+            for (int i = 0; i <= 4; i++)
+            {
+                double y = top + plotHeight - plotHeight * i / 4.0;
+                var line = new System.Windows.Shapes.Line
+                {
+                    X1 = left,
+                    X2 = left + plotWidth,
+                    Y1 = y,
+                    Y2 = y,
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = i == 0 ? 1.2 : 0.5,
+                    Opacity = i == 0 ? 0.7 : 0.35
+                };
+                dashboard_resource_chart.Children.Add(line);
+
+                var label = new TextBlock
+                {
+                    Text = FormatDashboardResourceValue(maxValue * i / 4.0),
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    Width = left - 8,
+                    TextAlignment = TextAlignment.Right
+                };
+                Canvas.SetLeft(label, 0);
+                Canvas.SetTop(label, y - 8);
+                dashboard_resource_chart.Children.Add(label);
+            }
+
+            AddDashboardResourceTimeLabel("60m ago", left, top + plotHeight + 6, TextAlignment.Left);
+            AddDashboardResourceTimeLabel("now", left + plotWidth - 50, top + plotHeight + 6, TextAlignment.Right);
+        }
+
+        private void AddDashboardResourceTimeLabel(string text, double x, double y, TextAlignment alignment)
+        {
+            var label = new TextBlock
+            {
+                Text = text,
+                Foreground = Brushes.Gray,
+                FontSize = 11,
+                Width = 50,
+                TextAlignment = alignment
+            };
+            Canvas.SetLeft(label, x);
+            Canvas.SetTop(label, y);
+            dashboard_resource_chart.Children.Add(label);
+        }
+
+        private void AddDashboardResourceLegendItem(ServerTable server, Brush brush)
+        {
+            var item = new StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 6),
+                ToolTip = GetDashboardServerLabel(server)
+            };
+
+            item.Children.Add(new Border
+            {
+                Background = brush,
+                Width = 12,
+                Height = 12,
+                Margin = new Thickness(0, 3, 6, 0)
+            });
+
+            item.Children.Add(new TextBlock
+            {
+                Text = GetDashboardServerLabel(server),
+                TextWrapping = TextWrapping.Wrap,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxHeight = 36
+            });
+
+            dashboard_resource_legend.Children.Add(item);
+        }
+
+        private double GetDashboardResourceSampleValue(ServerResourceSample sample)
+        {
+            return _dashboardResourceMetric == DashboardResourceMetric.CPU ? sample.CpuPercent : sample.MemoryMb;
+        }
+
+        private double GetDashboardResourceAxisMaximum(double maxValue)
+        {
+            if (_dashboardResourceMetric == DashboardResourceMetric.CPU)
+            {
+                return Math.Max(10, Math.Min(100, Math.Ceiling(maxValue / 10.0) * 10.0));
+            }
+
+            if (maxValue <= 0)
+            {
+                return 128;
+            }
+
+            double step = maxValue < 1024 ? 128 : 512;
+            return Math.Ceiling(maxValue / step) * step;
+        }
+
+        private string FormatDashboardResourceValue(double value)
+        {
+            if (_dashboardResourceMetric == DashboardResourceMetric.CPU)
+            {
+                return $"{value:0}%";
+            }
+
+            return value >= 1024 ? $"{value / 1024.0:0.0} GB" : $"{value:0} MB";
+        }
+
+        private string GetDashboardResourceMetricLabel()
+        {
+            return _dashboardResourceMetric == DashboardResourceMetric.CPU ? "CPU" : "Memory";
+        }
+
+        private Brush GetDashboardResourceBrush(int index)
+        {
+            return _dashboardResourceBrushes[index % _dashboardResourceBrushes.Length];
+        }
+
+        private string GetDashboardServerLabel(ServerTable server)
+        {
+            string name = string.IsNullOrWhiteSpace(server.Name) ? server.Game : server.Name;
+            return $"{server.ID} - {name}";
+        }
+
+        private void UpdateDashboardResourceButtons()
+        {
+            bool isCpu = _dashboardResourceMetric == DashboardResourceMetric.CPU;
+            button_DashboardResourceCpu.FontWeight = isCpu ? FontWeights.SemiBold : FontWeights.Normal;
+            button_DashboardResourceMemory.FontWeight = isCpu ? FontWeights.Normal : FontWeights.SemiBold;
+            button_DashboardResourceCpu.Background = isCpu ? Brushes.RoyalBlue : Brushes.Transparent;
+            button_DashboardResourceMemory.Background = isCpu ? Brushes.Transparent : Brushes.Purple;
+            button_DashboardResourceCpu.Foreground = isCpu ? Brushes.White : Foreground;
+            button_DashboardResourceMemory.Foreground = isCpu ? Foreground : Brushes.White;
+        }
+
+        private void Button_DashboardResourceCpu_Click(object sender, RoutedEventArgs e)
+        {
+            _dashboardResourceMetric = DashboardResourceMetric.CPU;
+            Refresh_DashboardResourceChart();
+        }
+
+        private void Button_DashboardResourceMemory_Click(object sender, RoutedEventArgs e)
+        {
+            _dashboardResourceMetric = DashboardResourceMetric.Memory;
+            Refresh_DashboardResourceChart();
+        }
+
+        private void DashboardResourceChart_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Refresh_DashboardResourceChart();
         }
 
         private async void SendGoogleAnalytics()

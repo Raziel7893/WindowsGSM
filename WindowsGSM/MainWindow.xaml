@@ -179,7 +179,7 @@
                      </StackPanel>
                      <StackPanel x:Name="stackPanel_EC_CustomSettingsContainer" Margin="0,0,0,10" Visibility="Collapsed">
                         <Label Content="Plugin Settings"></Label>
-                        <ScrollViewer Width="500" MaxHeight="165" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer Width="500" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                            <StackPanel x:Name="stackPanel_EC_CustomSettings"/>
                         </ScrollViewer>
                      </StackPanel>
@@ -400,6 +400,7 @@
       </DockPanel>
 
       <DockPanel Name="hMenu_Dashboard" Margin="48,0,0,0" Visibility="Hidden">
+         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
          <Grid Margin="10,10,10,10">
             <DockPanel>
                <Label DockPanel.Dock="Top" Content="SYSTEM METRICS" FontWeight="SemiBold" Foreground="Gray"/>
@@ -510,11 +511,35 @@
                   </Grid>
                </DockPanel>
 
-               <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0" MinHeight="180">
-                  <Grid x:Name="livechart_players"/>
-               </DockPanel>
-            </DockPanel>
-         </Grid>
+                <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0" MinHeight="180">
+                   <Grid x:Name="livechart_players"/>
+                </DockPanel>
+
+                <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0" MinHeight="240" Background="{DynamicResource MahApps.Brushes.Gray10}">
+                   <DockPanel DockPanel.Dock="Top" Margin="15,12,15,8">
+                      <Label DockPanel.Dock="Left" Content="SERVER RESOURCE HISTORY" FontWeight="SemiBold" Foreground="Gray" Padding="0" VerticalAlignment="Center"/>
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                         <Button x:Name="button_DashboardResourceCpu" Content="CPU" Width="70" Height="25" Margin="0,0,5,0" Click="Button_DashboardResourceCpu_Click"/>
+                         <Button x:Name="button_DashboardResourceMemory" Content="Memory" Width="80" Height="25" Click="Button_DashboardResourceMemory_Click"/>
+                      </StackPanel>
+                   </DockPanel>
+                   <Grid Margin="15,0,15,15">
+                      <Grid.ColumnDefinitions>
+                         <ColumnDefinition Width="1*"/>
+                         <ColumnDefinition Width="180"/>
+                      </Grid.ColumnDefinitions>
+                      <Grid Grid.Column="0" Background="{DynamicResource MahApps.Brushes.Gray7}">
+                         <Canvas x:Name="dashboard_resource_chart" MinHeight="180" SizeChanged="DashboardResourceChart_SizeChanged"/>
+                         <TextBlock x:Name="dashboard_resource_empty" Text="No running server resource history yet" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
+                      </Grid>
+                      <ScrollViewer Grid.Column="1" Margin="12,0,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                         <StackPanel x:Name="dashboard_resource_legend"/>
+                      </ScrollViewer>
+                   </Grid>
+                </DockPanel>
+             </DockPanel>
+          </Grid>
+         </ScrollViewer>
       </DockPanel>
 
       <DockPanel Name="hMenu_Home" Margin="48,0,0,0" Visibility="Hidden">

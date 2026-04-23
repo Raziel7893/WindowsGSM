@@ -49,6 +49,11 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Replaced the dashboard player chart with native WPF layout controls.
   - Avoids old compatibility warnings while keeping the dashboard player summary visible.
 
+- Added per-server dashboard resource history
+  - Dashboard now samples CPU and memory usage for each running server process.
+  - Keeps the last hour of samples in memory.
+  - Added a native WPF line chart with CPU/Memory toggle buttons and a color-coded server legend.
+
 - Added plugin custom server settings support
   - Added `CustomServerSetting` so plugins can declare editable per-plugin settings.
   - Plugins can expose `CustomSettings` as either simple strings or `CustomServerSetting` objects.
