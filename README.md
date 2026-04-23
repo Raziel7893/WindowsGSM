@@ -8,8 +8,8 @@
 [![Github all releases](https://img.shields.io/github/downloads/WindowsGSM/WindowsGSM/total.svg)](https://github.com/WindowsGSM/WindowsGSM/releases/)
 [![Discord Shield](https://discordapp.com/api/guilds/590590698907107340/widget.png?style=shield)](https://discord.gg/bGc7t2R)
 
-## Changelog against original windowsgsm
-https://github.com/Raziel7893/WindowsGSM/blob/master/ChangesFromBase.md
+## Changelog against Raziel7893/WindowsGSM
+https://github.com/shenniko/WindowsGSM/blob/master/ChangesFromBase.md
 
 # What is WindowsGSM?
 WindowsGSM is a powerful tool to manage game servers. Equipped with a GUI for server admins to install, import, start, stop, restart, update, and automate multiple servers with a push of a button.
