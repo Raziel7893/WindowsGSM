@@ -27,10 +27,12 @@
 
 Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
 ==============================================================================
--To do
-  - Minecraft Plugin
-    - (check windows env variables for java location, currently points static to 32bit JAVA directory)
-  - Firewall.cs
+- ToDo / Ideas
+  - Minecraft / Java detection
+    - Check Windows environment variables and common install locations for Java.
+    - Stop relying on a static 32-bit Java path for Minecraft-related flows.
+    - Consider validating the detected Java version against plugin or server requirements.
+  - Firewall rule improvements
     - Current firewall rule adds the server executable as an allowed app, which allows all TCP/UDP ports for that exe.
     - Replace with explicit inbound port rules where possible.
     - Start with WindowsGSM.cfg values:
@@ -40,9 +42,44 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
     - Add protocol selection: TCP / UDP / Both.
     - Later, allow plugins/game definitions to declare extra firewall ports such as Steam, beacon, telnet, web admin, voice, or derived offset ports.
     - Keep broad executable allow as a fallback for games/plugins without explicit firewall metadata.
+  - Server health checks and recovery
+    - Add query/RCON heartbeat checks so a hung server is not treated as healthy just because the process is still running.
+    - Allow auto-restart thresholds based on repeated failed checks.
+    - Surface the last successful health check and recent failure reason in the UI.
+  - Backup improvements
+    - Add retention policies such as keeping the last N backups or pruning by age/size.
+    - Add archive verification/checksum support so admins can tell whether a backup is usable.
+    - Consider a lightweight restore-test workflow or validation pass for backup contents.
+  - Config validation
+    - Validate ports, paths, cron syntax, tokens, duplicate server names, and required runtime locations before saving.
+    - Warn about conflicting ports across configured servers.
+    - Surface invalid plugin custom settings with field-level validation in the UI.
+  - In-app crash triage
+    - Show a crash summary in the dashboard using the generated crash logs.
+    - Include exit code, likely error line, last restart count, and a short recent-log excerpt.
+    - Make it easy to jump from a server row to its latest crash log.
+  - Plugin capability metadata
+    - Let plugins declare supported capabilities such as query method, RCON support, required runtime, firewall ports, backup exclusions, and update channels.
+    - Use this metadata to remove hardcoded per-game assumptions from the core app.
+  - Update channel controls
+    - Allow stable / recommended / latest / pinned-version update behavior where supported.
+    - Expose per-server update preferences for games and plugins that publish multiple channels.
+  - Large-library management
+    - Add search/filter/sort for servers by game, status, tags, favorite, port, or machine role.
+    - Consider saved views for admins running many instances.
+  - Secret handling
+    - Improve storage for webhook URLs, bot tokens, GSLTs, and admin credentials.
+    - Prefer protected storage or encryption for sensitive values instead of plain text config where practical.
+  - Import / export server profiles
+    - Export server definitions and WindowsGSM-managed settings separately from full file backups.
+    - Make migration and reproducible server setup easier across machines.
+  - First-run readiness checks
+    - Add a startup checklist for SteamCMD, Java, firewall, public IP detection, required runtimes, and permissions.
+    - Help users find common setup issues before the first failed launch.
+  - Port collision detection
+    - Detect overlapping game/query/RCON/admin ports across all configured servers.
+    - Warn before save and offer quick navigation to the conflicting server entries.
 ==============================================================================
-
-## Cosmetic change
 
 ## Changes
 - Updated WindowsGSM from .NET 8 to .NET 10
