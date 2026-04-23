@@ -181,4 +181,4 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Removed old embedded package DLL/resource entries and the unused `ReferencesEx` assembly resolver path.
   - Added ignore rules for `packages/`, `*.csproj.user`, and `*.Backup.tmp`.
   - Kept required packages for Discord, Roslyn compilation, MahApps, RCON, cron, zip, and management support.
-  - Bumped assembly version/file version to `1.25.1.19`.
+  - Bumped assembly version/file version to `1.26.0`.
