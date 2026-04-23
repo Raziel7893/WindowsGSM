@@ -1,8 +1,11 @@
 .vs
 .idea
+packages/
 WindowsGSM/bin/
 WindowsGSM/obj/
 WindowsGSM-Plugin-Development/bin/
 WindowsGSM-Plugin-Development/obj/
 WindowsGSM.sln.DotSettings.user
+*.csproj.user
+*.Backup.tmp
 publish/
