@@ -26,7 +26,23 @@
 ## Added by Shenniko
 
 Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
+==============================================================================
+-To do
+  - Minecraft Plugin
+    - (check windows env variables for java location, currently points static to 32bit JAVA directory)
+  - Firewall.cs
+    - Current firewall rule adds the server executable as an allowed app, which allows all TCP/UDP ports for that exe.
+    - Replace with explicit inbound port rules where possible.
+    - Start with WindowsGSM.cfg values:
+      - Server port
+      - Query port
+      - RCON/admin port
+    - Add protocol selection: TCP / UDP / Both.
+    - Later, allow plugins/game definitions to declare extra firewall ports such as Steam, beacon, telnet, web admin, voice, or derived offset ports.
+    - Keep broad executable allow as a fallback for games/plugins without explicit firewall metadata.
+==============================================================================
 
+## Changes
 - Updated WindowsGSM from .NET 8 to .NET 10
   - Changed the main WindowsGSM target framework to `net10.0-windows`.
   - Changed the plugin development project to `net10.0-windows`.
