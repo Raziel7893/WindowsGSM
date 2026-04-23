@@ -34,6 +34,11 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Removed unnecessary/obsolete package references that were causing restore/build warnings.
   - Build now completes with 0 warnings.
 
+- Updated AppVeyor CI for .NET 10
+  - Added `appveyor.yml` so AppVeyor installs the .NET 10 SDK before building.
+  - Build now uses the installed .NET SDK directly instead of AppVeyor's older default MSBuild/.NET SDK.
+  - Fixed AppVeyor YAML command quoting for the `dotnet build` step.
+
 - Replaced obsolete HTTP APIs
   - Added `WindowsGSM/Functions/Http.cs` as a shared `HttpClient` helper.
   - Replaced old `WebClient`, `WebRequest`, and `HttpWebRequest` usage across WindowsGSM and plugin development examples.
