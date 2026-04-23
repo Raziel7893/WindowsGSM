@@ -15,7 +15,7 @@ public class RoslynCompiler
 {
     readonly CSharpCompilation _compilation;
     Assembly _generatedAssembly;
-    Type? _proxyType;
+    Type _proxyType;
     string _assemblyName;
     string _typeName;
     PluginMetadata _pluginMetadata;

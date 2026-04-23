@@ -14,13 +14,10 @@ namespace WindowsGSM.GameServer.Addon
 
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    string fileName = await webClient.DownloadStringTaskAsync($"https://sm.alliedmods.net/smdrop/{version}/sourcemod-latest-windows");
-                    await webClient.DownloadFileTaskAsync($"https://sm.alliedmods.net/smdrop/{version}/{fileName}", Path.Combine(path, fileName));
-                    await Task.Run(() => { try { ZipFile.ExtractToDirectory(Path.Combine(path, fileName), path); } catch { } });
-                    await Task.Run(() => { try { File.Delete(Path.Combine(path, fileName)); } catch { } });
-                }
+                string fileName = await WindowsGSM.Functions.Http.DownloadStringAsync($"https://sm.alliedmods.net/smdrop/{version}/sourcemod-latest-windows");
+                await WindowsGSM.Functions.Http.DownloadFileAsync($"https://sm.alliedmods.net/smdrop/{version}/{fileName}", Path.Combine(path, fileName));
+                await Task.Run(() => { try { ZipFile.ExtractToDirectory(Path.Combine(path, fileName), path); } catch { } });
+                await Task.Run(() => { try { File.Delete(Path.Combine(path, fileName)); } catch { } });
             }
             catch
             {
@@ -37,13 +34,10 @@ namespace WindowsGSM.GameServer.Addon
 
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    string fileName = await webClient.DownloadStringTaskAsync($"https://mms.alliedmods.net/mmsdrop/{version}/mmsource-latest-windows");
-                    await webClient.DownloadFileTaskAsync($"https://mms.alliedmods.net/mmsdrop/{version}/{fileName}", Path.Combine(path, fileName));
-                    await Task.Run(() => { try { ZipFile.ExtractToDirectory(Path.Combine(path, fileName), path); } catch { } });
-                    await Task.Run(() => { try { File.Delete(Path.Combine(path, fileName)); } catch { } });
-                }
+                string fileName = await WindowsGSM.Functions.Http.DownloadStringAsync($"https://mms.alliedmods.net/mmsdrop/{version}/mmsource-latest-windows");
+                await WindowsGSM.Functions.Http.DownloadFileAsync($"https://mms.alliedmods.net/mmsdrop/{version}/{fileName}", Path.Combine(path, fileName));
+                await Task.Run(() => { try { ZipFile.ExtractToDirectory(Path.Combine(path, fileName), path); } catch { } });
+                await Task.Run(() => { try { File.Delete(Path.Combine(path, fileName)); } catch { } });
 
                 return true;
             }

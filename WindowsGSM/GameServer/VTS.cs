@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,7 +14,7 @@ namespace WindowsGSM.GameServer
         private readonly ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Vintage Story Dedicated Server";
         public string StartPath = "VintageStoryServer.exe";
@@ -111,14 +111,11 @@ namespace WindowsGSM.GameServer
             string zipPath = ServerPath.GetServersServerFiles(_serverData.ServerID, zipName);
 
             // Download vs_server_win-x64_{version}.zip from https://cdn.vintagestory.at/gamefiles/stable/
-            using (WebClient webClient = new WebClient())
+            try { await WindowsGSM.Functions.Http.DownloadFileAsync(address, zipPath); }
+            catch
             {
-                try { await webClient.DownloadFileTaskAsync(address, zipPath); } 
-                catch
-                {
-                    Error = $"Fail to download {zipName}";
-                    return null;
-                }
+                Error = $"Fail to download {zipName}";
+                return null;
             }
 
             // Extract vs_server_win-x64_{version}.zip
@@ -246,12 +243,9 @@ namespace WindowsGSM.GameServer
             // Get latest build in https://aur.archlinux.org/cgit/aur.git/log/?h=vintagestory with regex
             try
             {
-                using (WebClient webClient = new WebClient())
-                {
-                    string html = await webClient.DownloadStringTaskAsync("https://aur.archlinux.org/cgit/aur.git/log/?h=vintagestory");
-                    Regex regex = new Regex(@"(\d{1,}\.\d{1,}\.\d{1,})<\/a>"); // Match "1.12.14</a>"
-                    return regex.Match(html).Groups[1].Value; // Get first group -> "1.12.14"
-                }
+                string html = await WindowsGSM.Functions.Http.DownloadStringAsync("https://aur.archlinux.org/cgit/aur.git/log/?h=vintagestory");
+                Regex regex = new Regex(@"(\d{1,}\.\d{1,}\.\d{1,})<\/a>"); // Match "1.12.14</a>"
+                return regex.Match(html).Groups[1].Value; // Get first group -> "1.12.14"
             }
             catch
             {

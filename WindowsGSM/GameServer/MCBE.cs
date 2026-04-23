@@ -1,35 +1,21 @@
 ﻿using System.Threading.Tasks;
 using System.Diagnostics;
+using System;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Collections.Generic;
-using System;
 using WindowsGSM.Functions;
 
 namespace WindowsGSM.GameServer
 {
     class MCBE
     {
-        internal class MCBEWebclient : WebClient
-        {
-            protected override WebRequest GetWebRequest(Uri address)
-            {
-                HttpWebRequest req = (HttpWebRequest)base.GetWebRequest(address);
-                // WWW server only responds to Compression
-                req.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                // Also needs a Accept header.
-                req.Accept = "*/*";
-                return req;
-            }
-        }
-
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Minecraft: Bedrock Edition Server";
         public string StartPath = "bedrock_server.exe";
@@ -157,31 +143,28 @@ namespace WindowsGSM.GameServer
 
             try
             {
-                using (WebClient webClient = new MCBEWebclient())
+                string html = await Http.DownloadStringAsync(LinkApi, true);
+                Regex regex = new Regex(RegexString);
+                var matches = regex.Matches(html);
+
+                if (matches.Count <= 0)
                 {
-                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
-                    Regex regex = new Regex(RegexString);
-                    var matches = regex.Matches(html);
-
-                    if (matches.Count <= 0)
-                    {
-                        Error = "could not find BedrockServer versions";
-                        return null;
-                    }
-
-                    string downloadUrl = matches[0].Value; //https://minecraft.azureedge.net/bin-win/bedrock-server-1.14.21.0.zip
-                    string fileName = matches[0].Groups[1].Value; //bedrock-server-1.14.21.0.zip
-                    string version = matches[0].Groups[2].Value; //1.14.21.0
-
-                    //Download zip and extract then delete zip
-                    string zipPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, fileName);
-                    await webClient.DownloadFileTaskAsync(downloadUrl, zipPath);
-                    await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, Functions.ServerPath.GetServersServerFiles(_serverData.ServerID)));
-                    await Task.Run(() => File.Delete(zipPath));
-
-                    //Create MCBE-version.txt and write the version
-                    File.WriteAllText(Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "MCBE-version.txt"), version);
+                    Error = "could not find BedrockServer versions";
+                    return null;
                 }
+
+                string downloadUrl = matches[0].Value; //https://minecraft.azureedge.net/bin-win/bedrock-server-1.14.21.0.zip
+                string fileName = matches[0].Groups[1].Value; //bedrock-server-1.14.21.0.zip
+                string version = matches[0].Groups[2].Value; //1.14.21.0
+
+                //Download zip and extract then delete zip
+                string zipPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, fileName);
+                await Http.DownloadFileAsync(downloadUrl, zipPath, true);
+                await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, Functions.ServerPath.GetServersServerFiles(_serverData.ServerID)));
+                await Task.Run(() => File.Delete(zipPath));
+
+                //Create MCBE-version.txt and write the version
+                File.WriteAllText(Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "MCBE-version.txt"), version);
             }
             catch
             {
@@ -195,87 +178,84 @@ namespace WindowsGSM.GameServer
         {
             try
             {
-                using (WebClient webClient = new MCBEWebclient())
+                string remoteBuild = await GetRemoteBuild();
+
+                string html = await Http.DownloadStringAsync(LinkApi, true);
+                Regex regex = new Regex(RegexString);
+                var matches = regex.Matches(html);
+
+                if (matches.Count <= 0)
                 {
-                    string remoteBuild = await GetRemoteBuild();
-
-                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
-                    Regex regex = new Regex(RegexString);
-                    var matches = regex.Matches(html);
-
-                    if (matches.Count <= 0)
-                    {
-                        Error = "Fail to get latest build from https://minecraft.azureedge.net";
-                        return null;
-                    }
-
-                    string downloadUrl = matches[0].Value; //https://minecraft.azureedge.net/bin-win/bedrock-server-1.14.21.0.zip
-                    string fileName = matches[0].Groups[1].Value; //bedrock-server-1.14.21.0.zip
-                    string version = matches[0].Groups[2].Value; //1.14.21.0
-
-                    string tempPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "__temp");
-
-                    //Delete old __temp folder
-                    if (Directory.Exists(tempPath))
-                    {
-                        await Task.Run(() => Directory.Delete(tempPath, true));
-                    }
-
-                    Directory.CreateDirectory(tempPath);
-
-                    //Download zip and extract then delete zip - install to __temp folder
-                    string zipPath = Path.Combine(tempPath, fileName);
-                    await webClient.DownloadFileTaskAsync(downloadUrl, zipPath);
-                    await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, tempPath));
-                    await Task.Run(() => File.Delete(zipPath));
-
-                    string serverFilesPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID);
-
-                    //Delete old folder and files
-                    //List of sub folders that may or maynot exist in the various zip files
-                    List<string> serverSubFolder = new List<string>() { "behavior_packs", "definitions", "resource_packs", "structures" };
-
-                    await Task.Run(() =>
-                    {
-                        foreach (var folder in serverSubFolder)
-                        {
-                            if (Directory.Exists(Path.Combine(serverFilesPath, folder)))
-                            {
-                                Directory.Delete(Path.Combine(serverFilesPath, folder), true);
-                            }
-                        }
-
-                        File.Delete(Path.Combine(serverFilesPath, "bedrock_server.exe"));
-                        if (File.Exists(Path.Combine(serverFilesPath, "bedrock_server.pdb")))
-                            File.Delete(Path.Combine(serverFilesPath, "bedrock_server.pdb"));
-                        if (File.Exists(Path.Combine(serverFilesPath, "release-notes.txt")))
-                            File.Delete(Path.Combine(serverFilesPath, "release-notes.txt"));
-                    });
-
-                    //Move folder and files
-                    await Task.Run(() =>
-                    {
-                        foreach (var folder in serverSubFolder)
-                        {
-                            if (Directory.Exists(Path.Combine(serverFilesPath, "__temp", folder)))
-                            {
-                                Directory.Move(Path.Combine(serverFilesPath, "__temp", folder), Path.Combine(serverFilesPath, folder));
-                            }
-                        }
-
-                        File.Move(Path.Combine(serverFilesPath, "__temp", "bedrock_server.exe"), Path.Combine(serverFilesPath, "bedrock_server.exe"));
-                        if (File.Exists(Path.Combine(serverFilesPath, "__temp", "bedrock_server.pdb")))
-                            File.Move(Path.Combine(serverFilesPath, "__temp", "bedrock_server.pdb"), Path.Combine(serverFilesPath, "bedrock_server.pdb"));
-                        if (File.Exists(Path.Combine(serverFilesPath, "__temp", "release-notes.txt")))
-                            File.Move(Path.Combine(serverFilesPath, "__temp", "release-notes.txt"), Path.Combine(serverFilesPath, "release-notes.txt"));
-                    });
-
-                    //Delete __temp folder
-                    await Task.Run(() => Directory.Delete(tempPath, true));
-
-                    //Create MCBE-version.txt and write the version
-                    File.WriteAllText(Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "MCBE-version.txt"), version);
+                    Error = "Fail to get latest build from https://minecraft.azureedge.net";
+                    return null;
                 }
+
+                string downloadUrl = matches[0].Value; //https://minecraft.azureedge.net/bin-win/bedrock-server-1.14.21.0.zip
+                string fileName = matches[0].Groups[1].Value; //bedrock-server-1.14.21.0.zip
+                string version = matches[0].Groups[2].Value; //1.14.21.0
+
+                string tempPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "__temp");
+
+                //Delete old __temp folder
+                if (Directory.Exists(tempPath))
+                {
+                    await Task.Run(() => Directory.Delete(tempPath, true));
+                }
+
+                Directory.CreateDirectory(tempPath);
+
+                //Download zip and extract then delete zip - install to __temp folder
+                string zipPath = Path.Combine(tempPath, fileName);
+                await Http.DownloadFileAsync(downloadUrl, zipPath, true);
+                await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, tempPath));
+                await Task.Run(() => File.Delete(zipPath));
+
+                string serverFilesPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID);
+
+                //Delete old folder and files
+                //List of sub folders that may or maynot exist in the various zip files
+                List<string> serverSubFolder = new List<string>() { "behavior_packs", "definitions", "resource_packs", "structures" };
+
+                await Task.Run(() =>
+                {
+                    foreach (var folder in serverSubFolder)
+                    {
+                        if (Directory.Exists(Path.Combine(serverFilesPath, folder)))
+                        {
+                            Directory.Delete(Path.Combine(serverFilesPath, folder), true);
+                        }
+                    }
+
+                    File.Delete(Path.Combine(serverFilesPath, "bedrock_server.exe"));
+                    if (File.Exists(Path.Combine(serverFilesPath, "bedrock_server.pdb")))
+                        File.Delete(Path.Combine(serverFilesPath, "bedrock_server.pdb"));
+                    if (File.Exists(Path.Combine(serverFilesPath, "release-notes.txt")))
+                        File.Delete(Path.Combine(serverFilesPath, "release-notes.txt"));
+                });
+
+                //Move folder and files
+                await Task.Run(() =>
+                {
+                    foreach (var folder in serverSubFolder)
+                    {
+                        if (Directory.Exists(Path.Combine(serverFilesPath, "__temp", folder)))
+                        {
+                            Directory.Move(Path.Combine(serverFilesPath, "__temp", folder), Path.Combine(serverFilesPath, folder));
+                        }
+                    }
+
+                    File.Move(Path.Combine(serverFilesPath, "__temp", "bedrock_server.exe"), Path.Combine(serverFilesPath, "bedrock_server.exe"));
+                    if (File.Exists(Path.Combine(serverFilesPath, "__temp", "bedrock_server.pdb")))
+                        File.Move(Path.Combine(serverFilesPath, "__temp", "bedrock_server.pdb"), Path.Combine(serverFilesPath, "bedrock_server.pdb"));
+                    if (File.Exists(Path.Combine(serverFilesPath, "__temp", "release-notes.txt")))
+                        File.Move(Path.Combine(serverFilesPath, "__temp", "release-notes.txt"), Path.Combine(serverFilesPath, "release-notes.txt"));
+                });
+
+                //Delete __temp folder
+                await Task.Run(() => Directory.Delete(tempPath, true));
+
+                //Create MCBE-version.txt and write the version
+                File.WriteAllText(Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "MCBE-version.txt"), version);
 
                 return null;
             }
@@ -315,17 +295,14 @@ namespace WindowsGSM.GameServer
         {
             try
             {
-                using (WebClient webClient = new MCBEWebclient())
+                string html = await Http.DownloadStringAsync(LinkApi, true);
+
+                Regex regex = new Regex(RegexString);
+                var matches = regex.Matches(html);
+
+                if (matches.Count > 0)
                 {
-                    string html = await webClient.DownloadStringTaskAsync(LinkApi);
-
-                    Regex regex = new Regex(RegexString);
-                    var matches = regex.Matches(html);
-
-                    if (matches.Count > 0)
-                    {
-                        return matches[0].Groups[2].Value; //1.14.21.0
-                    }
+                    return matches[0].Groups[2].Value; //1.14.21.0
                 }
             }
             catch

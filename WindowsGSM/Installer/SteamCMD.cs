@@ -36,20 +36,42 @@ namespace WindowsGSM.Installer
             try
             {
                 var zipPath = Path.Combine(_installPath, "steamcmd.zip");
-                using (var webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip", zipPath);
-                }
+                await WindowsGSM.Functions.Http.DownloadFileAsync("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip", zipPath);
 
                 //Extract steamcmd.zip and delete the zip
                 await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, _installPath));
                 await Task.Run(() => File.Delete(zipPath));
+
+                await Bootstrap();
 
                 return true;
             }
             catch
             {
                 return false;
+            }
+        }
+
+        private static async Task Bootstrap()
+        {
+            var exePath = Path.Combine(_installPath, _exeFile);
+            if (!File.Exists(exePath)) { return; }
+
+            using (var p = new Process
+            {
+                StartInfo =
+                {
+                    WorkingDirectory = _installPath,
+                    FileName = exePath,
+                    Arguments = "+quit",
+                    WindowStyle = ProcessWindowStyle.Minimized,
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }
+            })
+            {
+                p.Start();
+                await Task.Run(() => p.WaitForExit());
             }
         }
 

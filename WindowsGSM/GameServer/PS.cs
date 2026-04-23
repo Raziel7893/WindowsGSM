@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -10,7 +10,7 @@ namespace WindowsGSM.GameServer
         private readonly Functions.ServerConfig _serverData;
 
         public string Error;
-        public string Notice;
+        public string Notice { get; set; }
 
         public const string FullName = "Post Scriptum Dedicated Server";
         public string StartPath = @"PostScriptum\Binaries\Win64\PostScriptumServer.exe";

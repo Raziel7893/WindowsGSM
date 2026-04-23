@@ -1,38 +1,20 @@
-﻿using System.IO;
-using System.Net;
-
 namespace WindowsGSM.Functions
 {
     static class GlobalServerList
     {
         public static bool IsServerOnSteamServerList(string publicIP, string port)
         {
-            if (WebRequest.Create("http://api.steampowered.com/ISteamApps/GetServersAtAddress/v0001?addr=" + publicIP + "&format=json") is HttpWebRequest webRequest)
+            try
             {
-                webRequest.Method = "GET";
-                webRequest.Headers["User-Agent"] = "Anything";
-                webRequest.ServicePoint.Expect100Continue = false;
+                string json = Http.DownloadString("http://api.steampowered.com/ISteamApps/GetServersAtAddress/v0001?addr=" + publicIP + "&format=json");
+                string matchString = "\"addr\":\"" + publicIP + ":" + port + "\"";
 
-                try
-                {
-                    using (var responseReader = new StreamReader(webRequest.GetResponse().GetResponseStream()))
-                    {
-                        string json = responseReader.ReadToEnd();
-                        string matchString = "\"addr\":\"" + publicIP + ":" + port + "\"";
-
-                        if (json.Contains(matchString))
-                        {
-                            return true;
-                        }
-                    }
-                }
-                catch
-                {
-                    //ignore
-                }
+                return json.Contains(matchString);
             }
-
-            return false;
+            catch
+            {
+                return false;
+            }
         }
     }
 }

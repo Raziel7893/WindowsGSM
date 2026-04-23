@@ -7,6 +7,7 @@ using System.Threading;
 using WindowsGSM.Functions;
 using WindowsGSM.GameServer.Engine;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace WindowsGSM.GameServer
 {
@@ -99,7 +100,7 @@ namespace WindowsGSM.GameServer
                         //Move WorldData to local windowsGSM installation.
                         //it is not good to have the serverdata in %AppData% as the user will forget it, as nearly all windowsgsm servers store it inside the WindosGSM structure
                         //also the backup function would be useless without
-                        sb.AppendLine($"<property name=\"GameName\"\t\t\t\t\t\tvalue=\"{serverData.ServerName}\"/>");
+                        sb.AppendLine($"<property name=\"GameName\"\t\t\t\t\t\tvalue=\"{GetSafeGameName()}\"/>");
                     else
                         sb.AppendLine(line);
 
@@ -112,6 +113,12 @@ namespace WindowsGSM.GameServer
             //Create steam_appid.txt
             string txtPath = Functions.ServerPath.GetServersServerFiles(serverData.ServerID, "steam_appid.txt");
             File.WriteAllText(txtPath, "251570");
+        }
+
+        private string GetSafeGameName()
+        {
+            string gameName = Regex.Replace(serverData.ServerName ?? string.Empty, @"[^A-Za-z0-9._\- ]", string.Empty).Trim();
+            return string.IsNullOrWhiteSpace(gameName) ? $"WindowsGSM Server {serverData.ServerID}" : gameName;
         }
 
         public async Task<Process> Start()
@@ -145,7 +152,7 @@ namespace WindowsGSM.GameServer
             }
 
             string logFile = @"7DaysToDieServer_Data\output_log_dedi__" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
-            string param = $"-logfile \"{Path.Combine(workingDir, logFile)}\" -quit -batchmode -nographics -configfile=serverconfig.xml -dedicated {serverData.ServerParam}";
+            string param = $"-logfile \"{Path.Combine(workingDir, logFile)}\" -batchmode -nographics -configfile=serverconfig.xml -dedicated {serverData.ServerParam}";
 
             Process p;
             if (!AllowsEmbedConsole)

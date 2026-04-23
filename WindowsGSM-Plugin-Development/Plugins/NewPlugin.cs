@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -178,10 +177,7 @@ namespace WindowsGSM.Plugins
             // Download the latest paper.jar to /serverfiles
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync($"https://papermc.io/api/v1/paper/{build}/download", ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
-                }
+                await Http.DownloadFileAsync($"https://papermc.io/api/v1/paper/{build}/download", ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
             }
             catch (Exception e)
             {
@@ -229,10 +225,7 @@ namespace WindowsGSM.Plugins
             // Download the latest paper.jar to /serverfiles
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync($"https://papermc.io/api/v1/paper/{build}/download", ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
-                }
+                await Http.DownloadFileAsync($"https://papermc.io/api/v1/paper/{build}/download", ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
             }
             catch (Exception e)
             {
@@ -290,12 +283,9 @@ namespace WindowsGSM.Plugins
             // Get latest version and build at https://papermc.io/api/v1/paper
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    var version = JObject.Parse(await webClient.DownloadStringTaskAsync("https://papermc.io/api/v1/paper"))["versions"][0].ToString(); // "1.16.1"
-                    var build = JObject.Parse(await webClient.DownloadStringTaskAsync($"https://papermc.io/api/v1/paper/{version}"))["builds"]["latest"].ToString(); // "133"
-                    return $"{version}/{build}";
-                }
+                var version = JObject.Parse(await Http.DownloadStringAsync("https://papermc.io/api/v1/paper"))["versions"][0].ToString(); // "1.16.1"
+                var build = JObject.Parse(await Http.DownloadStringAsync($"https://papermc.io/api/v1/paper/{version}"))["builds"]["latest"].ToString(); // "133"
+                return $"{version}/{build}";
             }
             catch
             {

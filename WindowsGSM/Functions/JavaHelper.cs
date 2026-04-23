@@ -43,26 +43,23 @@ namespace WindowsGSM.Functions
 
             try
             {
-                using (WebClient webClient = new WebClient())
+                //Run jre-8u231-windows-i586-iftw.exe to install Java
+                await Http.DownloadFileAsync(JreDownloadLink, jrePath);
+                string installPath = Functions.ServerPath.GetServersServerFiles(serverID);
+                ProcessStartInfo psi = new ProcessStartInfo(jrePath);
+                psi.WorkingDirectory = installPath;
+                psi.Arguments = $"INSTALL_SILENT=Enable INSTALLDIR=\"{JreAbsoluteInstallPath}\"";
+                Process p = new Process
                 {
-                    //Run jre-8u231-windows-i586-iftw.exe to install Java
-                    await webClient.DownloadFileTaskAsync(JreDownloadLink, jrePath);
-                    string installPath = Functions.ServerPath.GetServersServerFiles(serverID);
-                    ProcessStartInfo psi = new ProcessStartInfo(jrePath);
-                    psi.WorkingDirectory = installPath;
-                    psi.Arguments = $"INSTALL_SILENT=Enable INSTALLDIR=\"{JreAbsoluteInstallPath}\"";
-                    Process p = new Process
-                    {
-                        StartInfo = psi,
-                        EnableRaisingEvents = true
-                    };
-                    p.Start();
+                    StartInfo = psi,
+                    EnableRaisingEvents = true
+                };
+                p.Start();
 
-                    //wait until the java.exe can be found in the newly installed jre folder
-                    while (FindJavaExecutableAbsolutePathInJavaRuntimeDirectory(JreAbsoluteInstallPath).Length == 0)
-                    {
-                        await Task.Delay(100);
-                    }
+                //wait until the java.exe can be found in the newly installed jre folder
+                while (FindJavaExecutableAbsolutePathInJavaRuntimeDirectory(JreAbsoluteInstallPath).Length == 0)
+                {
+                    await Task.Delay(100);
                 }
             }
             catch

@@ -1,6 +1,4 @@
 ﻿using ControlzEx.Theming;
-using LiveCharts;
-using LiveCharts.Wpf;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using Microsoft.Win32;
@@ -18,6 +16,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -47,6 +46,12 @@ namespace WindowsGSM
 
         [DllImport("user32.dll")]
         private static extern int SetWindowText(IntPtr hWnd, string windowName);
+
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         private static class RegistryKeyName
         {
@@ -134,9 +139,28 @@ namespace WindowsGSM
             Crashed = 13
         }
 
+        private enum DashboardResourceMetric
+        {
+            CPU,
+            Memory
+        }
+
+        private sealed class ServerResourceSample
+        {
+            public DateTime Timestamp { get; set; }
+            public double CpuPercent { get; set; }
+            public double MemoryMb { get; set; }
+        }
+
+        private sealed class ProcessUsageSample
+        {
+            public TimeSpan TotalProcessorTime { get; set; }
+            public DateTime Timestamp { get; set; }
+        }
+
         public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
         public static readonly int MAX_SERVER = 256;
-        public static readonly string WGSM_PATH = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+        public static readonly string WGSM_PATH = GetApplicationPath();
         public static readonly string DEFAULT_THEME = "Cyan";
 
         private readonly NotifyIcon notifyIcon;
@@ -148,6 +172,47 @@ namespace WindowsGSM
         public List<PluginMetadata> PluginsList = new List<PluginMetadata>();
 
         private readonly List<System.Windows.Controls.CheckBox> _checkBoxes = new List<System.Windows.Controls.CheckBox>();
+        private readonly Dictionary<string, System.Windows.Controls.TextBox> _editConfigCustomSettingTextBoxes = new Dictionary<string, System.Windows.Controls.TextBox>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<ServerResourceSample>> _serverResourceSamples = new Dictionary<string, List<ServerResourceSample>>();
+        private readonly Dictionary<string, ProcessUsageSample> _lastProcessUsageSamples = new Dictionary<string, ProcessUsageSample>();
+        private readonly Brush[] _dashboardResourceBrushes =
+        {
+            Brushes.RoyalBlue,
+            Brushes.ForestGreen,
+            Brushes.Goldenrod,
+            Brushes.MediumVioletRed,
+            Brushes.DarkOrange,
+            Brushes.DeepSkyBlue,
+            Brushes.MediumSeaGreen,
+            Brushes.IndianRed,
+            Brushes.SlateBlue,
+            Brushes.Teal
+        };
+        private static readonly TimeSpan DashboardResourceHistoryDuration = TimeSpan.FromHours(1);
+        private DashboardResourceMetric _dashboardResourceMetric = DashboardResourceMetric.CPU;
+
+        private static string GetApplicationPath()
+        {
+            string exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            string exeDirectory = string.IsNullOrWhiteSpace(exePath) ? null : Path.GetDirectoryName(exePath);
+
+            return string.IsNullOrWhiteSpace(exeDirectory) ? AppContext.BaseDirectory : exeDirectory;
+        }
+
+        private static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            while (child != null)
+            {
+                if (child is T parent)
+                {
+                    return parent;
+                }
+
+                child = VisualTreeHelper.GetParent(child);
+            }
+
+            return null;
+        }
 
         public string g_DonorType = string.Empty;
 
@@ -156,12 +221,56 @@ namespace WindowsGSM
         private long _lastAutoRestartTime = 0;
         private long _lastCrashTime = 0;
         private const long _webhookThresholdTimeInMs = 6000 * 5;
+        private const int WM_NCHITTEST = 0x0084;
+        private const int WM_NCLBUTTONDOWN = 0x00A1;
+        private const int WM_SYSCOMMAND = 0x0112;
+        private const int SC_MINIMIZE = 0xF020;
+        private const int HTCAPTION = 2;
         public ServerStatus _latestWebhookSend = ServerStatus.Stopped;
 
         private void OnSourceInitialized(object sender, EventArgs e)
         {
             HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
             source.AddHook(new HwndSourceHook(HandleMessages));
+        }
+
+        private void MainWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount > 1 || e.ButtonState != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            if (FindVisualParent<System.Windows.Controls.Button>(e.OriginalSource as DependencyObject) != null)
+            {
+                return;
+            }
+
+            Point mousePosition = e.GetPosition(this);
+            if (!IsInDraggableTitleArea(mousePosition))
+            {
+                return;
+            }
+
+            var source = (HwndSource)PresentationSource.FromVisual(this);
+            if (source?.Handle != IntPtr.Zero)
+            {
+                ReleaseCapture();
+                SendMessage(source.Handle, WM_NCLBUTTONDOWN, new IntPtr(HTCAPTION), IntPtr.Zero);
+                e.Handled = true;
+            }
+        }
+
+        private bool IsInDraggableTitleArea(Point point)
+        {
+            double titleBarHeight = TitleBarHeight > 0 ? TitleBarHeight : 32;
+            if (point.Y < 0 || point.Y > titleBarHeight || point.X < 0 || point.X > ActualWidth)
+            {
+                return false;
+            }
+
+            var source = InputHitTest(point) as DependencyObject;
+            return FindVisualParent<System.Windows.Controls.Button>(source) == null;
         }
 
         protected override async void OnClosing(CancelEventArgs e)
@@ -219,11 +328,21 @@ namespace WindowsGSM
 
         private IntPtr HandleMessages(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            // 0x0112 == WM_SYSCOMMAND, 'Window' command message.
-            // 0xF020 == SC_MINIMIZE, command to minimize the window.
-            if (msg == 0x0112 && ((int)wParam & 0xFFF0) == 0xF020)
+            if (msg == WM_NCHITTEST)
             {
-                // Cancel the minimize.
+                int x = unchecked((short)((long)lParam & 0xFFFF));
+                int y = unchecked((short)(((long)lParam >> 16) & 0xFFFF));
+                Point point = PointFromScreen(new Point(x, y));
+
+                if (IsInDraggableTitleArea(point))
+                {
+                    handled = true;
+                    return new IntPtr(HTCAPTION);
+                }
+            }
+
+            if (msg == WM_SYSCOMMAND && ((int)wParam & 0xFFF0) == SC_MINIMIZE)
+            {
                 NotifyIcon_MouseClick(null, null);
                 handled = true;
             }
@@ -236,9 +355,17 @@ namespace WindowsGSM
             //Add SplashScreen
             var splashScreen = new SplashScreen("Images/SplashScreen.png");
             splashScreen.Show(false, true);
-            DiscordWebhook.SendErrorLog();
+            try
+            {
+                DiscordWebhook.SendErrorLog();
+            }
+            catch
+            {
+                // Ignore errors sending error logs
+            }
 
             InitializeComponent();
+            AddHandler(MouseLeftButtonDownEvent, new MouseButtonEventHandler(MainWindow_MouseLeftButtonDown), true);
             this.SourceInitialized += new EventHandler(OnSourceInitialized);
 
             Title = $"WindowsGSM {WGSM_VERSION}";
@@ -1061,6 +1188,8 @@ namespace WindowsGSM
                 }
                 ServerGrid.Items.Refresh();
 
+                CaptureServerResourceSamples();
+                Refresh_DashboardResourceChart();
                 Refresh_DashBoard_LiveChart();
 
                 await Task.Delay(1000);
@@ -1087,41 +1216,368 @@ namespace WindowsGSM
                 .Select(s => (type: s.Key, players: s.Sum(p => p.players)))
                 .ToList();
 
-            // Ajust the maxvalue of axis Y base on PlayerCount
-            if (typePlayers.Count > 0)
-            {
-                int maxValue = typePlayers.Select(s => s.Item2).Max() + 5;
-                livechart_players_axisY.MaxValue = (maxValue > 10) ? maxValue : 10;
-            }
+            livechart_players.Children.Clear();
+            livechart_players.ColumnDefinitions.Clear();
 
-            // Update the column data if updated, if ServerType doesn't exist remove
-            for (int i = 0; i < livechart_players.Series.Count; i++)
+            if (typePlayers.Count == 0) { return; }
+
+            int maxValue = Math.Max(typePlayers.Select(s => s.Item2).Max() + 5, 10);
+            for (int i = 0; i < typePlayers.Count; i++)
             {
-                if (typePlayers.Select(t => t.Item1).Contains(livechart_players.Series[i].Title))
+                var item = typePlayers[i];
+                livechart_players.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var column = new Grid { Margin = new Thickness(6, 0, 6, 0), ToolTip = $"{item.Item1}: {item.Item2}" };
+                column.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                column.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var barHost = new Grid { MinHeight = 130 };
+                barHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Math.Max(maxValue - item.Item2, 0), GridUnitType.Star) });
+                barHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(Math.Max(item.Item2, 0.1), GridUnitType.Star) });
+
+                var bar = new Border
                 {
-                    int currentPlayers = typePlayers.Where(t => t.Item1 == livechart_players.Series[i].Title).Select(t => t.Item2).FirstOrDefault();
-                    if (((ChartValues<int>)livechart_players.Series[i].Values)[0] != currentPlayers)
+                    Background = Brushes.Goldenrod,
+                    MinHeight = item.Item2 > 0 ? 2 : 0,
+                    Margin = new Thickness(2, 0, 2, 0)
+                };
+                Grid.SetRow(bar, 1);
+                barHost.Children.Add(bar);
+
+                var label = new TextBlock
+                {
+                    Text = item.Item1,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxHeight = 36,
+                    Margin = new Thickness(0, 6, 0, 0)
+                };
+                Grid.SetRow(label, 1);
+
+                column.Children.Add(barHost);
+                column.Children.Add(label);
+                Grid.SetColumn(column, i);
+                livechart_players.Children.Add(column);
+            }
+        }
+
+        private void CaptureServerResourceSamples()
+        {
+            DateTime now = DateTime.Now;
+            DateTime cutoff = now - DashboardResourceHistoryDuration;
+            HashSet<string> visibleServerIds = new HashSet<string>();
+
+            foreach (ServerTable server in ServerGrid.Items.Cast<ServerTable>())
+            {
+                visibleServerIds.Add(server.ID);
+                var serverMetadata = GetServerMetadata(server.ID);
+
+                if (serverMetadata?.ServerStatus != ServerStatus.Started || serverMetadata.Process == null)
+                {
+                    _lastProcessUsageSamples.Remove(server.ID);
+                    PruneServerResourceSamples(server.ID, cutoff);
+                    continue;
+                }
+
+                try
+                {
+                    Process process = serverMetadata.Process;
+                    if (process.HasExited)
                     {
-                        livechart_players.Series[i].Values[0] = currentPlayers;
+                        _lastProcessUsageSamples.Remove(server.ID);
+                        PruneServerResourceSamples(server.ID, cutoff);
+                        continue;
                     }
 
-                    typePlayers.Remove((livechart_players.Series[i].Title, currentPlayers));
+                    process.Refresh();
+                    TimeSpan totalProcessorTime = process.TotalProcessorTime;
+                    double cpuPercent = 0;
+
+                    if (_lastProcessUsageSamples.TryGetValue(server.ID, out var lastSample))
+                    {
+                        double elapsedMs = (now - lastSample.Timestamp).TotalMilliseconds;
+                        if (elapsedMs > 0)
+                        {
+                            double processorMs = (totalProcessorTime - lastSample.TotalProcessorTime).TotalMilliseconds;
+                            cpuPercent = processorMs / elapsedMs / Environment.ProcessorCount * 100.0;
+                            cpuPercent = Math.Max(0, Math.Min(100, cpuPercent));
+                        }
+                    }
+
+                    _lastProcessUsageSamples[server.ID] = new ProcessUsageSample
+                    {
+                        TotalProcessorTime = totalProcessorTime,
+                        Timestamp = now
+                    };
+
+                    if (!_serverResourceSamples.TryGetValue(server.ID, out var samples))
+                    {
+                        samples = new List<ServerResourceSample>();
+                        _serverResourceSamples[server.ID] = samples;
+                    }
+
+                    samples.Add(new ServerResourceSample
+                    {
+                        Timestamp = now,
+                        CpuPercent = cpuPercent,
+                        MemoryMb = process.WorkingSet64 / 1024.0 / 1024.0
+                    });
+
+                    samples.RemoveAll(sample => sample.Timestamp < cutoff);
                 }
-                else
+                catch
                 {
-                    livechart_players.Series.RemoveAt(i--);
+                    _lastProcessUsageSamples.Remove(server.ID);
+                    PruneServerResourceSamples(server.ID, cutoff);
                 }
             }
 
-            // Add ServerType Series if not exist
-            foreach (var item in typePlayers)
+            foreach (string serverId in _serverResourceSamples.Keys.Except(visibleServerIds).ToList())
             {
-                livechart_players.Series.Add(new ColumnSeries
-                {
-                    Title = item.Item1,
-                    Values = new ChartValues<int> { item.Item2 }
-                });
+                PruneServerResourceSamples(serverId, cutoff);
             }
+        }
+
+        private void PruneServerResourceSamples(string serverId, DateTime cutoff)
+        {
+            if (!_serverResourceSamples.TryGetValue(serverId, out var samples))
+            {
+                return;
+            }
+
+            samples.RemoveAll(sample => sample.Timestamp < cutoff);
+            if (samples.Count == 0)
+            {
+                _serverResourceSamples.Remove(serverId);
+            }
+        }
+
+        private void Refresh_DashboardResourceChart()
+        {
+            if (dashboard_resource_chart.ActualWidth <= 0 || dashboard_resource_chart.ActualHeight <= 0)
+            {
+                return;
+            }
+
+            dashboard_resource_chart.Children.Clear();
+            dashboard_resource_legend.Children.Clear();
+            UpdateDashboardResourceButtons();
+
+            DateTime now = DateTime.Now;
+            DateTime cutoff = now - DashboardResourceHistoryDuration;
+            var servers = ServerGrid.Items.Cast<ServerTable>()
+                .Where(server => _serverResourceSamples.TryGetValue(server.ID, out var samples) && samples.Any(sample => sample.Timestamp >= cutoff))
+                .OrderBy(server => int.TryParse(server.ID, out int id) ? id : int.MaxValue)
+                .ToList();
+
+            dashboard_resource_empty.Visibility = servers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (servers.Count == 0)
+            {
+                return;
+            }
+
+            double width = dashboard_resource_chart.ActualWidth;
+            double height = dashboard_resource_chart.ActualHeight;
+            double left = 46;
+            double top = 18;
+            double right = 18;
+            double bottom = 28;
+            double plotWidth = Math.Max(1, width - left - right);
+            double plotHeight = Math.Max(1, height - top - bottom);
+
+            double maxValue = servers
+                .SelectMany(server => _serverResourceSamples[server.ID].Where(sample => sample.Timestamp >= cutoff))
+                .Select(GetDashboardResourceSampleValue)
+                .DefaultIfEmpty(0)
+                .Max();
+            maxValue = GetDashboardResourceAxisMaximum(maxValue);
+
+            DrawDashboardResourceGrid(left, top, plotWidth, plotHeight, maxValue);
+
+            for (int index = 0; index < servers.Count; index++)
+            {
+                ServerTable server = servers[index];
+                Brush brush = GetDashboardResourceBrush(index);
+                var points = _serverResourceSamples[server.ID]
+                    .Where(sample => sample.Timestamp >= cutoff)
+                    .OrderBy(sample => sample.Timestamp)
+                    .Select(sample =>
+                    {
+                        double x = left + ((sample.Timestamp - cutoff).TotalSeconds / DashboardResourceHistoryDuration.TotalSeconds) * plotWidth;
+                        double y = top + plotHeight - (GetDashboardResourceSampleValue(sample) / maxValue) * plotHeight;
+                        return new Point(x, y);
+                    })
+                    .ToList();
+
+                if (points.Count == 1)
+                {
+                    points.Add(new Point(points[0].X + 1, points[0].Y));
+                }
+
+                var line = new System.Windows.Shapes.Polyline
+                {
+                    Stroke = brush,
+                    StrokeThickness = 2,
+                    Points = new PointCollection(points),
+                    ToolTip = $"{GetDashboardServerLabel(server)} {GetDashboardResourceMetricLabel()}"
+                };
+                dashboard_resource_chart.Children.Add(line);
+
+                AddDashboardResourceLegendItem(server, brush);
+            }
+        }
+
+        private void DrawDashboardResourceGrid(double left, double top, double plotWidth, double plotHeight, double maxValue)
+        {
+            for (int i = 0; i <= 4; i++)
+            {
+                double y = top + plotHeight - plotHeight * i / 4.0;
+                var line = new System.Windows.Shapes.Line
+                {
+                    X1 = left,
+                    X2 = left + plotWidth,
+                    Y1 = y,
+                    Y2 = y,
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = i == 0 ? 1.2 : 0.5,
+                    Opacity = i == 0 ? 0.7 : 0.35
+                };
+                dashboard_resource_chart.Children.Add(line);
+
+                var label = new TextBlock
+                {
+                    Text = FormatDashboardResourceValue(maxValue * i / 4.0),
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    Width = left - 8,
+                    TextAlignment = TextAlignment.Right
+                };
+                Canvas.SetLeft(label, 0);
+                Canvas.SetTop(label, y - 8);
+                dashboard_resource_chart.Children.Add(label);
+            }
+
+            AddDashboardResourceTimeLabel("60m ago", left, top + plotHeight + 6, TextAlignment.Left);
+            AddDashboardResourceTimeLabel("now", left + plotWidth - 50, top + plotHeight + 6, TextAlignment.Right);
+        }
+
+        private void AddDashboardResourceTimeLabel(string text, double x, double y, TextAlignment alignment)
+        {
+            var label = new TextBlock
+            {
+                Text = text,
+                Foreground = Brushes.Gray,
+                FontSize = 11,
+                Width = 50,
+                TextAlignment = alignment
+            };
+            Canvas.SetLeft(label, x);
+            Canvas.SetTop(label, y);
+            dashboard_resource_chart.Children.Add(label);
+        }
+
+        private void AddDashboardResourceLegendItem(ServerTable server, Brush brush)
+        {
+            var item = new StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 6),
+                ToolTip = GetDashboardServerLabel(server)
+            };
+
+            item.Children.Add(new Border
+            {
+                Background = brush,
+                Width = 12,
+                Height = 12,
+                Margin = new Thickness(0, 3, 6, 0)
+            });
+
+            item.Children.Add(new TextBlock
+            {
+                Text = GetDashboardServerLabel(server),
+                TextWrapping = TextWrapping.Wrap,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxHeight = 36
+            });
+
+            dashboard_resource_legend.Children.Add(item);
+        }
+
+        private double GetDashboardResourceSampleValue(ServerResourceSample sample)
+        {
+            return _dashboardResourceMetric == DashboardResourceMetric.CPU ? sample.CpuPercent : sample.MemoryMb;
+        }
+
+        private double GetDashboardResourceAxisMaximum(double maxValue)
+        {
+            if (_dashboardResourceMetric == DashboardResourceMetric.CPU)
+            {
+                return Math.Max(10, Math.Min(100, Math.Ceiling(maxValue / 10.0) * 10.0));
+            }
+
+            if (maxValue <= 0)
+            {
+                return 128;
+            }
+
+            double step = maxValue < 1024 ? 128 : 512;
+            return Math.Ceiling(maxValue / step) * step;
+        }
+
+        private string FormatDashboardResourceValue(double value)
+        {
+            if (_dashboardResourceMetric == DashboardResourceMetric.CPU)
+            {
+                return $"{value:0}%";
+            }
+
+            return value >= 1024 ? $"{value / 1024.0:0.0} GB" : $"{value:0} MB";
+        }
+
+        private string GetDashboardResourceMetricLabel()
+        {
+            return _dashboardResourceMetric == DashboardResourceMetric.CPU ? "CPU" : "Memory";
+        }
+
+        private Brush GetDashboardResourceBrush(int index)
+        {
+            return _dashboardResourceBrushes[index % _dashboardResourceBrushes.Length];
+        }
+
+        private string GetDashboardServerLabel(ServerTable server)
+        {
+            string name = string.IsNullOrWhiteSpace(server.Name) ? server.Game : server.Name;
+            return $"{server.ID} - {name}";
+        }
+
+        private void UpdateDashboardResourceButtons()
+        {
+            bool isCpu = _dashboardResourceMetric == DashboardResourceMetric.CPU;
+            button_DashboardResourceCpu.FontWeight = isCpu ? FontWeights.SemiBold : FontWeights.Normal;
+            button_DashboardResourceMemory.FontWeight = isCpu ? FontWeights.Normal : FontWeights.SemiBold;
+            button_DashboardResourceCpu.Background = isCpu ? Brushes.RoyalBlue : Brushes.Transparent;
+            button_DashboardResourceMemory.Background = isCpu ? Brushes.Transparent : Brushes.Purple;
+            button_DashboardResourceCpu.Foreground = isCpu ? Brushes.White : Foreground;
+            button_DashboardResourceMemory.Foreground = isCpu ? Foreground : Brushes.White;
+        }
+
+        private void Button_DashboardResourceCpu_Click(object sender, RoutedEventArgs e)
+        {
+            _dashboardResourceMetric = DashboardResourceMetric.CPU;
+            Refresh_DashboardResourceChart();
+        }
+
+        private void Button_DashboardResourceMemory_Click(object sender, RoutedEventArgs e)
+        {
+            _dashboardResourceMetric = DashboardResourceMetric.Memory;
+            Refresh_DashboardResourceChart();
+        }
+
+        private void DashboardResourceChart_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Refresh_DashboardResourceChart();
         }
 
         private async void SendGoogleAnalytics()
@@ -1135,7 +1591,7 @@ namespace WindowsGSM
                 analytics.SendRAM();
                 analytics.SendDisk();
             }
-            catch (Exception e)
+            catch
             {
                 // i basically just don't care when google analytics fail
             }
@@ -1353,27 +1809,19 @@ namespace WindowsGSM
 
             if (Installer != null)
             {
-                //Wait installer exit. Example: steamcmd.exe
-                await Task.Run(() =>
+                string installOutput = await WaitForInstallerOutput(Installer);
+
+                if (!gameServer.IsInstallValid() && installOutput.Contains("Missing configuration", StringComparison.OrdinalIgnoreCase))
                 {
-                    var reader = Installer.StandardOutput;
-                    while (!reader.EndOfStream)
+                    AppendInstallLogLine("SteamCMD was still completing first-run configuration. Retrying install once...");
+                    Log(newServerConfig.ServerID, "[NOTICE] SteamCMD missing configuration on first install attempt; retrying once.");
+
+                    Installer = await gameServer.Install();
+                    if (Installer != null)
                     {
-                        var nextLine = reader.ReadLine();
-                        if (nextLine.Contains("Logging in user "))
-                        {
-                            nextLine += Environment.NewLine + "Please send the Login Token:";
-                        }
-
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            textbox_InstallLog.AppendText(nextLine + Environment.NewLine);
-                            textbox_InstallLog.ScrollToEnd();
-                        });
+                        await WaitForInstallerOutput(Installer);
                     }
-
-                    Installer?.WaitForExit();
-                });
+                }
             }
 
             if (gameServer.IsInstallValid())
@@ -1411,7 +1859,7 @@ namespace WindowsGSM
                         var analytics = new GoogleAnalytics();
                         analytics.SendGameServerInstall(newServerConfig.ServerID, servergame);
                     }
-                    catch (Exception e)
+                    catch
                     {
                         // i basically just don't care when google analytics fail
                     }
@@ -1681,7 +2129,7 @@ namespace WindowsGSM
             var server = (ServerTable)ServerGrid.SelectedItem;
             if (server == null) { return; }
 
-            SendCommandAsync(server, command);
+            _ = SendCommandAsync(server, command);
         }
 
         private void Textbox_ServerCommand_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -2119,7 +2567,7 @@ namespace WindowsGSM
                     var analytics = new GoogleAnalytics();
                     analytics.SendGameServerStart(server.ID, server.Game);
                 }
-                catch (Exception e)
+                catch
                 {
                     // i basically just don't care when google analytics fail
                 }
@@ -2792,9 +3240,15 @@ namespace WindowsGSM
 
                 if (GetServerMetadata(server.ID).ServerStatus == ServerStatus.Started)
                 {
+                    Process crashedProcess = GetServerMetadata(server.ID).Process;
+                    string crashLog = WriteGameServerCrashLog(server, crashedProcess, out string exitCode);
                     bool autoRestart = GetServerMetadata(serverId).AutoRestart;
                     _serverMetadata[int.Parse(server.ID)].ServerStatus = autoRestart ? ServerStatus.Restarting : ServerStatus.Stopped;
-                    Log(server.ID, "Server: Crashed");
+                    Log(server.ID, string.IsNullOrWhiteSpace(exitCode) ? "Server: Crashed" : $"Server: Crashed (Exit Code: {exitCode})");
+                    if (!string.IsNullOrWhiteSpace(crashLog))
+                    {
+                        Log(server.ID, $"[ERROR] Crash details: {crashLog}");
+                    }
                     SetServerStatus(server, autoRestart ? "Restarting" : "Stopped");
 
                     if (GetServerMetadata(serverId).DiscordAlert && GetServerMetadata(serverId).CrashAlert)
@@ -2992,7 +3446,7 @@ namespace WindowsGSM
                         var analytics = new GoogleAnalytics();
                         analytics.SendGameServerHeartBeat(server.Game, server.Name);
                     }
-                    catch (Exception e)
+                    catch
                     {
                         // i basically just don't care when google analytics fail
                     }
@@ -3167,6 +3621,59 @@ namespace WindowsGSM
             textBox_wgsmlog.ScrollToEnd();
         }
 
+        private async Task<string> WaitForInstallerOutput(Process installer)
+        {
+            if (installer == null) { return string.Empty; }
+
+            var output = new StringBuilder();
+            var tasks = new List<Task>();
+
+            if (installer.StartInfo.RedirectStandardOutput)
+            {
+                tasks.Add(ReadInstallerStream(installer.StandardOutput, output));
+            }
+
+            if (installer.StartInfo.RedirectStandardError)
+            {
+                tasks.Add(ReadInstallerStream(installer.StandardError, output));
+            }
+
+            tasks.Add(Task.Run(() => installer.WaitForExit()));
+            await Task.WhenAll(tasks);
+
+            return output.ToString();
+        }
+
+        private async Task ReadInstallerStream(StreamReader reader, StringBuilder output)
+        {
+            while (true)
+            {
+                string nextLine = await reader.ReadLineAsync();
+                if (nextLine == null) { break; }
+
+                if (nextLine.Contains("Logging in user "))
+                {
+                    nextLine += Environment.NewLine + "Please send the Login Token:";
+                }
+
+                lock (output)
+                {
+                    output.AppendLine(nextLine);
+                }
+
+                AppendInstallLogLine(nextLine);
+            }
+        }
+
+        private void AppendInstallLogLine(string text)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                textbox_InstallLog.AppendText(text + Environment.NewLine);
+                textbox_InstallLog.ScrollToEnd();
+            });
+        }
+
         public void DiscordBotLog(string logText)
         {
             string log = $"[{DateTime.Now.ToString("MM/dd/yyyy-HH:mm:ss")}] {logText}" + Environment.NewLine;
@@ -3179,6 +3686,159 @@ namespace WindowsGSM
             textBox_DiscordBotLog.AppendText(log);
             textBox_DiscordBotLog.Text = RemovedOldLog(textBox_DiscordBotLog.Text);
             textBox_DiscordBotLog.ScrollToEnd();
+        }
+
+        private string WriteGameServerCrashLog(ServerTable server, Process process, out string exitCode)
+        {
+            exitCode = string.Empty;
+
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string logDirectory = ServerPath.GetLogs("servers", server.ID);
+                Directory.CreateDirectory(logDirectory);
+
+                string crashLogPath = Path.Combine(logDirectory, $"crash_{timestamp}.log");
+                var log = new StringBuilder();
+                log.AppendLine($"WindowsGSM crash details");
+                log.AppendLine($"Time: {DateTime.Now:MM/dd/yyyy-HH:mm:ss}");
+                log.AppendLine($"Server ID: {server.ID}");
+                log.AppendLine($"Server Name: {server.Name}");
+                log.AppendLine($"Game: {server.Game}");
+                log.AppendLine($"PID: {server.PID}");
+
+                if (process != null)
+                {
+                    try
+                    {
+                        exitCode = process.ExitCode.ToString();
+                        log.AppendLine($"Exit Code: {exitCode}");
+                    }
+                    catch (Exception e)
+                    {
+                        log.AppendLine($"Exit Code: unavailable ({e.Message})");
+                    }
+
+                    try
+                    {
+                        log.AppendLine($"Executable: {process.StartInfo.FileName}");
+                        log.AppendLine($"Arguments: {process.StartInfo.Arguments}");
+                        log.AppendLine($"Working Directory: {process.StartInfo.WorkingDirectory}");
+                    }
+                    catch (Exception e)
+                    {
+                        log.AppendLine($"Process start info unavailable: {e.Message}");
+                    }
+                }
+
+                log.AppendLine();
+                log.AppendLine("Captured console output:");
+                string consoleOutput = GetServerMetadata(server.ID)?.ServerConsole?.Get();
+                AppendLines(log, consoleOutput, 200);
+
+                log.AppendLine();
+                log.AppendLine("Recent server log files:");
+                AppendRecentServerLogs(log, server.ID, 3, 200);
+
+                File.WriteAllText(crashLogPath, log.ToString());
+                return crashLogPath.Replace(WGSM_PATH, string.Empty).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch (Exception e)
+            {
+                return $"failed to write crash details ({e.Message})";
+            }
+        }
+
+        private static void AppendLines(StringBuilder builder, string text, int maxLines)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                builder.AppendLine("(none captured)");
+                return;
+            }
+
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            foreach (string line in lines.Skip(Math.Max(lines.Length - maxLines, 0)))
+            {
+                builder.AppendLine(line);
+            }
+        }
+
+        private static void AppendRecentServerLogs(StringBuilder builder, string serverId, int maxFiles, int maxLinesPerFile)
+        {
+            string serverFilesPath = ServerPath.GetServersServerFiles(serverId);
+            if (!Directory.Exists(serverFilesPath))
+            {
+                builder.AppendLine("(serverfiles directory not found)");
+                return;
+            }
+
+            var files = Directory.EnumerateFiles(serverFilesPath, "*.*", SearchOption.AllDirectories)
+                .Where(path => path.EndsWith(".log", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                .Select(path => new FileInfo(path))
+                .Where(file => file.Exists)
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Take(maxFiles)
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                builder.AppendLine("(no .log or .txt files found under serverfiles)");
+                return;
+            }
+
+            foreach (var file in files)
+            {
+                builder.AppendLine();
+                builder.AppendLine($"--- {file.FullName.Replace(serverFilesPath, string.Empty).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)} ({file.LastWriteTime:MM/dd/yyyy-HH:mm:ss}) ---");
+                try
+                {
+                    string text = ReadSharedText(file.FullName);
+                    AppendDiagnosticLines(builder, text, 50);
+                    AppendLines(builder, text, maxLinesPerFile);
+                }
+                catch (Exception e)
+                {
+                    builder.AppendLine($"Failed to read log file: {e.Message}");
+                }
+            }
+        }
+
+        private static void AppendDiagnosticLines(StringBuilder builder, string text, int maxMatches)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            string[] markers = { " ERR ", "ERROR", "EXC", "Exception", "Failed", "Invalid", "Could not", "denied", "shutting down" };
+            var matches = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Where(line => markers.Any(marker => line.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0))
+                .Take(maxMatches)
+                .ToList();
+
+            if (matches.Count == 0)
+            {
+                return;
+            }
+
+            builder.AppendLine("Diagnostic lines:");
+            foreach (string line in matches)
+            {
+                builder.AppendLine(line);
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("Log tail:");
+        }
+
+        private static string ReadSharedText(string path)
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
         }
 
         private string RemovedOldLog(string logText)
@@ -3472,31 +4132,28 @@ namespace WindowsGSM
         {
             try
             {
-                using (WebClient webClient = new WebClient())
+                string json = await WindowsGSM.Functions.Http.DownloadStringAsync($"https://windowsgsm.com/patreon/patreonAuth.php?auth={authKey}");
+                bool success = JObject.Parse(json)["success"].ToString() == "True";
+
+                if (success)
                 {
-                    string json = await webClient.DownloadStringTaskAsync($"https://windowsgsm.com/patreon/patreonAuth.php?auth={authKey}");
-                    bool success = JObject.Parse(json)["success"].ToString() == "True";
+                    string name = JObject.Parse(json)["name"].ToString();
+                    string type = JObject.Parse(json)["type"].ToString();
 
-                    if (success)
-                    {
-                        string name = JObject.Parse(json)["name"].ToString();
-                        string type = JObject.Parse(json)["type"].ToString();
+                    g_DonorType = type;
 
-                        g_DonorType = type;
+                    g_DiscordBot.SetDonorType(g_DonorType);
+                    comboBox_Themes.IsEnabled = true;
 
-                        g_DiscordBot.SetDonorType(g_DonorType);
-                        comboBox_Themes.IsEnabled = true;
-
-                        ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
-
-                        return (true, name);
-                    }
-
-                    MahAppSwitch_DonorConnect.IsOn = false;
-
-                    //Set theme
                     ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
+
+                    return (true, name);
                 }
+
+                MahAppSwitch_DonorConnect.IsOn = false;
+
+                //Set theme
+                ThemeManager.Current.ChangeTheme(this, $"{(MahAppSwitch_DarkTheme.IsOn ? "Dark" : "Light")}.{comboBox_Themes.SelectedItem}");
             }
             catch
             {
@@ -3551,102 +4208,20 @@ namespace WindowsGSM
                 return;
             }
 
-            var settings = new MetroDialogSettings
-            {
-                AffirmativeButtonText = "Update",
-                DefaultButtonFocus = MessageDialogResult.Affirmative
-            };
-
-            var result = await this.ShowMessageAsync("Software Updates", $"Version {latestVersion} is available, would you like to update now?\n\nWarning: All servers will be shutdown!", MessageDialogStyle.AffirmativeAndNegative, settings);
-
-            if (result.ToString().Equals("Affirmative"))
-            {
-                string installPath = ServerPath.GetBin();
-                Directory.CreateDirectory(installPath);
-
-                string filePath = Path.Combine(installPath, "WindowsGSM-Updater.exe");
-
-                if (!File.Exists(filePath))
-                {
-                    //Download WindowsGSM-Updater.exe
-                    controller = await this.ShowProgressAsync("Downloading WindowsGSM-Updater...", "Please wait...");
-                    controller.SetIndeterminate();
-                    bool success = await DownloadWindowsGSMUpdater();
-                    await controller.CloseAsync();
-                }
-
-                if (File.Exists(filePath))
-                {
-                    //Kill all the server
-                    for (int i = 0; i <= MAX_SERVER; i++)
-                    {
-                        if (GetServerMetadata(i) == null || GetServerMetadata(i).Process == null)
-                        {
-                            continue;
-                        }
-
-                        if (!GetServerMetadata(i).Process.HasExited)
-                        {
-                            _serverMetadata[i].Process.Kill();
-                        }
-                    }
-
-                    //Run WindowsGSM-Updater.exe
-                    Process updater = new Process
-                    {
-                        StartInfo =
-                        {
-                            WorkingDirectory = installPath,
-                            FileName = filePath,
-                            Arguments = "-autostart -forceupdate"
-                        }
-                    };
-                    updater.Start();
-
-                    Close();
-                }
-                else
-                {
-                    await this.ShowMessageAsync("Software Updates", $"Fail to download WindowsGSM-Updater.exe");
-                }
-            }
+            await this.ShowMessageAsync("Software Updates", $"Version {latestVersion} is available. Please update manually by replacing the exe found in https://github.com/Raziel7893/WindowsGSM/releases");
         }
 
         private async Task<string> GetLatestVersion()
         {
             try
             {
-                var webRequest = WebRequest.Create("https://api.github.com/repos/WindowsGSM/WindowsGSM/releases/latest") as HttpWebRequest;
-                webRequest.Method = "GET";
-                webRequest.UserAgent = "Anything";
-                webRequest.ServicePoint.Expect100Continue = false;
-                var response = await webRequest.GetResponseAsync();
-                using (var responseReader = new StreamReader(response.GetResponseStream()))
-                    return JObject.Parse(responseReader.ReadToEnd())["tag_name"].ToString();
+                string json = await WindowsGSM.Functions.Http.DownloadStringAsync("https://api.github.com/repos/Raziel7893/WindowsGSM/releases/latest");
+                return JObject.Parse(json)["tag_name"].ToString();
             }
             catch
             {
                 return null;
             }
-        }
-
-        private async Task<bool> DownloadWindowsGSMUpdater()
-        {
-            string filePath = ServerPath.GetBin("WindowsGSM-Updater.exe");
-
-            try
-            {
-                using (WebClient webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync("https://github.com/WindowsGSM/WindowsGSM-Updater/releases/latest/download/WindowsGSM-Updater.exe", filePath);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine($"Github.WindowsGSM-Updater.exe {e}");
-            }
-
-            return File.Exists(filePath);
         }
 
         private async void Help_AboutWindowsGSM_Click(object sender, RoutedEventArgs e)
@@ -3828,10 +4403,7 @@ namespace WindowsGSM
         {
             try
             {
-                using (var webClient = new WebClient())
-                {
-                    return webClient.DownloadString("https://ipinfo.io/ip").Replace("\n", string.Empty);
-                }
+                return WindowsGSM.Functions.Http.DownloadString("https://ipinfo.io/ip").Replace("\n", string.Empty);
             }
             catch
             {
@@ -3851,8 +4423,10 @@ namespace WindowsGSM
             }
             else
             {
-                WindowState = WindowState.Normal;
                 Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                Focus();
             }
         }
 
@@ -3911,8 +4485,125 @@ namespace WindowsGSM
             numericUpDown_EC_ServerQueryPort.Value = int.TryParse(serverConfig.ServerQueryPort, out var queryPort) ? queryPort : int.Parse(gameServer.QueryPort);
             textbox_EC_ServerMap.Text = serverConfig.ServerMap;
             textbox_EC_ServerGSLT.Text = serverConfig.ServerGSLT;
+            Refresh_EditConfig_CustomSettings(serverConfig, gameServer);
             textbox_EC_ServerParam.Text = serverConfig.ServerParam;
             return true;
+        }
+
+        private void Refresh_EditConfig_CustomSettings(ServerConfig serverConfig, dynamic gameServer)
+        {
+            _editConfigCustomSettingTextBoxes.Clear();
+            stackPanel_EC_CustomSettings.Children.Clear();
+
+            var customSettings = GetCustomServerSettings(gameServer);
+            stackPanel_EC_CustomSettingsContainer.Visibility = customSettings.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (customSettings.Count == 0) { return; }
+
+            foreach (var setting in customSettings)
+            {
+                string value = ServerConfig.GetSetting(serverConfig.ServerID, setting.Key);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    value = setting.DefaultValue ?? string.Empty;
+                }
+
+                var row = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+                row.Children.Add(new Label { Content = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label, Padding = new Thickness(0, 0, 0, 3) });
+
+                var textBox = new System.Windows.Controls.TextBox
+                {
+                    Height = 23,
+                    Width = 480,
+                    TextWrapping = TextWrapping.Wrap,
+                    Text = value,
+                    FontFamily = new FontFamily("Consolas"),
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+
+                row.Children.Add(textBox);
+                stackPanel_EC_CustomSettings.Children.Add(row);
+                _editConfigCustomSettingTextBoxes[setting.Key] = textBox;
+            }
+        }
+
+        private static List<CustomServerSetting> GetCustomServerSettings(dynamic gameServer)
+        {
+            var settings = new List<CustomServerSetting>();
+            if (gameServer == null) { return settings; }
+
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null) { return settings; }
+
+            if (rawSettings is IEnumerable enumerable && !(rawSettings is string))
+            {
+                foreach (object item in enumerable)
+                {
+                    AddCustomServerSetting(settings, item);
+                }
+            }
+            else
+            {
+                AddCustomServerSetting(settings, rawSettings);
+            }
+
+            return settings
+                .Where(setting => !string.IsNullOrWhiteSpace(setting.Key) && !ServerConfig.IsBuiltInSetting(setting.Key))
+                .GroupBy(setting => setting.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private static void AddCustomServerSetting(List<CustomServerSetting> settings, object item)
+        {
+            if (item == null) { return; }
+
+            if (item is CustomServerSetting customServerSetting)
+            {
+                settings.Add(NormalizeCustomServerSetting(customServerSetting));
+                return;
+            }
+
+            if (item is string key)
+            {
+                settings.Add(new CustomServerSetting(key));
+                return;
+            }
+
+            string reflectedKey = GetMemberValue(item, "Key")?.ToString()
+                ?? GetMemberValue(item, "Name")?.ToString()
+                ?? GetMemberValue(item, "SettingName")?.ToString();
+
+            if (string.IsNullOrWhiteSpace(reflectedKey)) { return; }
+
+            settings.Add(new CustomServerSetting
+            {
+                Key = reflectedKey,
+                Label = GetMemberValue(item, "Label")?.ToString()
+                    ?? GetMemberValue(item, "DisplayName")?.ToString()
+                    ?? reflectedKey,
+                DefaultValue = GetMemberValue(item, "DefaultValue")?.ToString()
+                    ?? GetMemberValue(item, "Default")?.ToString()
+                    ?? string.Empty
+            });
+        }
+
+        private static CustomServerSetting NormalizeCustomServerSetting(CustomServerSetting setting)
+        {
+            setting.Label = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label;
+            setting.DefaultValue = setting.DefaultValue ?? string.Empty;
+            return setting;
+        }
+
+        private static object GetMemberValue(object source, string memberName)
+        {
+            if (source == null) { return null; }
+
+            var type = source.GetType();
+            var property = type.GetProperty(memberName);
+            if (property != null) { return property.GetValue(source); }
+
+            var field = type.GetField(memberName);
+            return field?.GetValue(source);
         }
 
         private void Button_EditConfig_Save_Click(object sender, RoutedEventArgs e)
@@ -3928,6 +4619,10 @@ namespace WindowsGSM
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerQueryPort, numericUpDown_EC_ServerQueryPort.Value.ToString());
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMap, textbox_EC_ServerMap.Text.Trim());
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerGSLT, textbox_EC_ServerGSLT.Text.Trim());
+            foreach (var customSetting in _editConfigCustomSettingTextBoxes)
+            {
+                ServerConfig.SetSetting(server.ID, customSetting.Key, customSetting.Value.Text.Trim());
+            }
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerParam, textbox_EC_ServerParam.Text.Trim());
 
             LoadServerTable();

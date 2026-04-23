@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 
@@ -162,20 +160,9 @@ namespace WindowsGSM.Functions
 
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://www.google-analytics.com/collect");
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.ContentLength = Encoding.UTF8.GetByteCount(post);
-
-                // write the request body to the request
-                using (var writer = new StreamWriter(await request.GetRequestStreamAsync()))
+                using (var webResponse = await Http.PostFormAsync("https://www.google-analytics.com/collect", post))
                 {
-                    writer.Write(post);
-                }
-
-                using (var webResponse = (HttpWebResponse)await request.GetResponseAsync())
-                {
-                    if (webResponse.StatusCode != HttpStatusCode.OK)
+                    if (!webResponse.IsSuccessStatusCode)
                     {
                         Debug.WriteLine((int)webResponse.StatusCode + "Google Analytics tracking did not return OK 200");
                     }

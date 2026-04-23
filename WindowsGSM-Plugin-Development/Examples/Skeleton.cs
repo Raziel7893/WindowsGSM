@@ -47,6 +47,13 @@ namespace WindowsGSM.Plugins
         public string Additional = "";
 
 
+        // - Optional custom settings shown in Edit WindowsGSM.cfg
+        public CustomServerSetting[] CustomSettings =
+        {
+            new CustomServerSetting("ExampleSetting", "Example Setting")
+        };
+
+
         // - Create a default cfg for the game server after installation
         public async void CreateServerCFG()
         {
