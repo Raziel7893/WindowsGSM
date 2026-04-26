@@ -1,5 +1,6 @@
 .vs
 .idea
+.dotnet_home/
 packages/
 WindowsGSM/bin/
 WindowsGSM/obj/

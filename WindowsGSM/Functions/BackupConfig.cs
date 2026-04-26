@@ -15,6 +15,7 @@ namespace WindowsGSM.Functions
         {
             public const string BackupLocation = "backuplocation";
             public const string SavesLocation = "saveslocation";
+            public const string FilesLocation = "fileslocation";
             public const string MaximumBackups = "maximumbackups";
         }
 
@@ -23,6 +24,7 @@ namespace WindowsGSM.Functions
 
         public string BackupLocation { get; private set; }
         public IReadOnlyList<string> SavesLocations { get; private set; } = new List<string>();
+        public IReadOnlyList<string> FilesLocations { get; private set; } = new List<string>();
         public int MaximumBackups { get; private set; } = DefaultMaximumBackups;
 
         public BackupConfig(string serverId)
@@ -56,9 +58,13 @@ $@"// Location where backup archives will be stored
 {SettingName.BackupLocation}=""{backupPath}""
 
 // Folder(s) that contain save files to include in backups
-// Multiple folders can be separated with ;
-// e.g. ""C:\Games\MyServer\Saves;D:\OtherSaves""
+// Multiple folders can be separated with ; or |
+// e.g. ""C:\Games\MyServer\Saves|D:\OtherSaves""
 {SettingName.SavesLocation}=""{savePath}""
+
+// File(s) to include in backups
+// Multiple files can be separated with ; or |
+{SettingName.FilesLocation}=""""
 
 // Maximum number of backup archives to keep
 {SettingName.MaximumBackups}=""{DefaultMaximumBackups}""";
@@ -79,8 +85,14 @@ $@"// Location where backup archives will be stored
             modified |= EnsureSettingExists(lines, SettingName.SavesLocation, savePath, new[]
             {
                 "// Folder(s) that contain save files to include in backups",
-                "// Multiple folders can be separated with ;",
-                "// e.g. \"C:\\Games\\MyServer\\Saves;D:\\OtherSaves\""
+                "// Multiple folders can be separated with ; or |",
+                "// e.g. \"C:\\Games\\MyServer\\Saves|D:\\OtherSaves\""
+            });
+
+            modified |= EnsureSettingExists(lines, SettingName.FilesLocation, string.Empty, new[]
+            {
+                "// File(s) to include in backups",
+                "// Multiple files can be separated with ; or |"
             });
 
             modified |= EnsureSettingExists(lines, SettingName.MaximumBackups, DefaultMaximumBackups.ToString(), new[]
@@ -125,6 +137,10 @@ $@"// Location where backup archives will be stored
         {
             bool modified = false;
             var rewrittenLines = new List<string>();
+            string cfgBackupLocation = ServerConfig.GetCustomSetting(_serverId, SettingName.BackupLocation);
+            string cfgSavesLocation = ServerConfig.GetCustomSetting(_serverId, SettingName.SavesLocation);
+            string cfgFilesLocation = ServerConfig.GetCustomSetting(_serverId, SettingName.FilesLocation);
+            string cfgMaximumBackups = ServerConfig.GetCustomSetting(_serverId, SettingName.MaximumBackups);
 
             foreach (string rawLine in File.ReadLines(_configPath))
             {
@@ -150,25 +166,35 @@ $@"// Location where backup archives will be stored
                 switch (key)
                 {
                     case SettingName.BackupLocation:
-                        BackupLocation = NormalizePortablePath(value, "Backups", _serverId);
+                        BackupLocation = NormalizePortablePath(OverrideValue(value, cfgBackupLocation), "Backups", _serverId);
                         rewrittenValue = BackupLocation;
                         break;
 
                     case SettingName.SavesLocation:
-                        SavesLocations = value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                                              .Select(x => NormalizePortablePath(x.Trim(), "Servers", _serverId, "serverfiles"))
+                        string savesLocation = OverrideValue(value, cfgSavesLocation);
+                        SavesLocations = SplitBackupList(savesLocation)
+                                              .Select(x => NormalizeBackupItemPath(x.Trim()))
                                               .ToList();
                         rewrittenValue = string.Join(";", SavesLocations);
                         break;
 
+                    case SettingName.FilesLocation:
+                        string filesLocation = OverrideValue(value, cfgFilesLocation);
+                        FilesLocations = SplitBackupList(filesLocation)
+                                              .Select(x => NormalizeBackupItemPath(x.Trim()))
+                                              .ToList();
+                        rewrittenValue = string.Join(";", FilesLocations);
+                        break;
+
                     case SettingName.MaximumBackups:
                         int max;
-                        MaximumBackups = int.TryParse(value, out max) ? (max <= 0 ? 1 : max) : DefaultMaximumBackups;
+                        string maximumBackups = OverrideValue(value, cfgMaximumBackups);
+                        MaximumBackups = int.TryParse(maximumBackups, out max) ? (max <= 0 ? 1 : max) : DefaultMaximumBackups;
                         break;
                 }
 
                 string rewrittenLine = rawLine;
-                if (key == SettingName.BackupLocation || key == SettingName.SavesLocation)
+                if (key == SettingName.BackupLocation || key == SettingName.SavesLocation || key == SettingName.FilesLocation)
                 {
                     rewrittenLine = $"{line.Substring(0, equalsIndex).Trim()}=\"{rewrittenValue}\"";
                     modified |= !string.Equals(value, rewrittenValue, StringComparison.OrdinalIgnoreCase);
@@ -184,11 +210,41 @@ $@"// Location where backup archives will be stored
             {
                 SavesLocations = new[] { Path.Combine(MainWindow.WGSM_PATH, "Servers", _serverId, "serverfiles") }.ToList();
             }
+            if (FilesLocations == null)
+            {
+                FilesLocations = new List<string>();
+            }
 
             if (modified)
             {
                 File.WriteAllLines(_configPath, rewrittenLines);
             }
+        }
+
+        private static string OverrideValue(string value, string overrideValue)
+        {
+            return string.IsNullOrWhiteSpace(overrideValue) ? value : overrideValue;
+        }
+
+        private static IEnumerable<string> SplitBackupList(string value)
+        {
+            return (value ?? string.Empty).Split(new[] { ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        private string NormalizeBackupItemPath(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            string expanded = Environment.ExpandEnvironmentVariables(value.Trim().Trim('"'));
+            if (Path.IsPathRooted(expanded))
+            {
+                return NormalizePortablePath(expanded, "Servers", _serverId, "serverfiles");
+            }
+
+            return Path.Combine(ServerPath.GetServersServerFiles(_serverId), expanded);
         }
 
         private static string NormalizePortablePath(string value, params string[] expectedTail)

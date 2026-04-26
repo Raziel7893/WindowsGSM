@@ -387,9 +387,9 @@ namespace WindowsGSM.DiscordBot
                             bool backuped = await WindowsGSM.BackupServerById(args[1], message.Author.Id.ToString(), message.Author.Username);
                             await message.Channel.SendMessageAsync($"Server (ID: {args[1]}) {(backuped ? "Backup Complete" : "Fail to Backup")}.");
                         }
-                        else if (serverStatus == MainWindow.ServerStatus.Backuping)
+                        else if (serverStatus == MainWindow.ServerStatus.Backup)
                         {
-                            await message.Channel.SendMessageAsync($"Server (ID: {args[1]}) already Backuping.");
+                            await message.Channel.SendMessageAsync($"Server (ID: {args[1]}) already backing up.");
                         }
                         else
                         {

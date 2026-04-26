@@ -132,7 +132,7 @@ namespace WindowsGSM
             Updated = 6,
             Updating = 7,
             Backuped = 8,
-            Backuping = 9,
+            Backup = 9,
             Restored = 10,
             Restoring = 11,
             Deleting = 12,
@@ -172,7 +172,8 @@ namespace WindowsGSM
         public List<PluginMetadata> PluginsList = new List<PluginMetadata>();
 
         private readonly List<System.Windows.Controls.CheckBox> _checkBoxes = new List<System.Windows.Controls.CheckBox>();
-        private readonly Dictionary<string, System.Windows.Controls.TextBox> _editConfigCustomSettingTextBoxes = new Dictionary<string, System.Windows.Controls.TextBox>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, System.Windows.Controls.Control> _editConfigCustomSettingControls = new Dictionary<string, System.Windows.Controls.Control>(StringComparer.OrdinalIgnoreCase);
+        private bool _editConfigUsesCustomServerSettingSchema;
         private readonly Dictionary<string, List<ServerResourceSample>> _serverResourceSamples = new Dictionary<string, List<ServerResourceSample>>();
         private readonly Dictionary<string, ProcessUsageSample> _lastProcessUsageSamples = new Dictionary<string, ProcessUsageSample>();
         private readonly Brush[] _dashboardResourceBrushes =
@@ -924,7 +925,7 @@ namespace WindowsGSM
                     case ServerStatus.Updated: status = "Updated"; break;
                     case ServerStatus.Updating: status = "Updating"; break;
                     case ServerStatus.Backuped: status = "Backuped"; break;
-                    case ServerStatus.Backuping: status = "Backuping"; break;
+                    case ServerStatus.Backup: status = "Backup"; break;
                     case ServerStatus.Restored: status = "Restored"; break;
                     case ServerStatus.Restoring: status = "Restoring"; break;
                     case ServerStatus.Deleting: status = "Deleting"; break;
@@ -2812,9 +2813,9 @@ namespace WindowsGSM
                 return false;
             }
 
-            _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Backuping;
+            _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Backup;
             Log(server.ID, "Action: Backup" + notes);
-            SetServerStatus(server, "Backuping");
+            SetServerStatus(server, "Backup");
 
             await EndAllRunningProcess(server.ID);
             await Task.Delay(1000);
@@ -2853,8 +2854,9 @@ namespace WindowsGSM
                 }
             }
             catch { }
-            var saves = (backupConfig.SavesLocations ?? Enumerable.Empty<string>()).ToList();
-            if (saves.Count == 0)
+            var backupFolders = (backupConfig.SavesLocations ?? Enumerable.Empty<string>()).ToList();
+            var backupFiles = (backupConfig.FilesLocations ?? Enumerable.Empty<string>()).ToList();
+            if (backupFolders.Count == 0 && backupFiles.Count == 0)
             {
                 string startPath = ServerPath.GetServers(server.ID);
                 string error = string.Empty;
@@ -2910,16 +2912,18 @@ namespace WindowsGSM
                         using (FileStream zipStream = new FileStream(zipFile, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
                         using (ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
                         {
-                            for (int i = 0; i < saves.Count; i++)
+                            int manifestIndex = 0;
+                            for (int i = 0; i < backupFolders.Count; i++)
                             {
-                                string original = saves[i] ?? string.Empty;
+                                string original = backupFolders[i] ?? string.Empty;
                                 original = Environment.ExpandEnvironmentVariables(original).Trim();
-                                manifest.Add($"{i}|{original}");
+                                manifest.Add($"{manifestIndex}|D|{original}");
 
-                                string entryRoot = $"save_{i}";
+                                string entryRoot = $"save_{manifestIndex}";
                                 if (string.IsNullOrWhiteSpace(original))
                                 {
                                     archive.CreateEntry(entryRoot + "/");
+                                    manifestIndex++;
                                     continue;
                                 }
 
@@ -2935,6 +2939,34 @@ namespace WindowsGSM
                                 {
                                     archive.CreateEntry(entryRoot + "/");
                                 }
+
+                                manifestIndex++;
+                            }
+
+                            for (int i = 0; i < backupFiles.Count; i++)
+                            {
+                                string original = backupFiles[i] ?? string.Empty;
+                                original = Environment.ExpandEnvironmentVariables(original).Trim();
+                                manifest.Add($"{manifestIndex}|F|{original}");
+
+                                string entryRoot = $"save_{manifestIndex}";
+                                if (string.IsNullOrWhiteSpace(original))
+                                {
+                                    archive.CreateEntry(entryRoot + "/");
+                                    manifestIndex++;
+                                    continue;
+                                }
+
+                                if (File.Exists(original))
+                                {
+                                    AddFileToArchive(archive, original, CombineArchivePath(entryRoot, Path.GetFileName(original)));
+                                }
+                                else
+                                {
+                                    archive.CreateEntry(entryRoot + "/");
+                                }
+
+                                manifestIndex++;
                             }
 
                             ZipArchiveEntry manifestEntry = archive.CreateEntry("backup_manifest.txt");
@@ -3170,10 +3202,11 @@ namespace WindowsGSM
                 foreach (var line in manifestLines)
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
-                    var parts = line.Split(new[] { '|' }, 2);
-                    if (parts.Length != 2) continue;
+                    var parts = line.Split(new[] { '|' }, 3);
+                    if (parts.Length < 2) continue;
                     if (!int.TryParse(parts[0], out int idx)) continue;
-                    string originalPath = parts[1];
+                    string entryType = parts.Length == 3 ? parts[1] : "D";
+                    string originalPath = parts.Length == 3 ? parts[2] : parts[1];
                     if (string.IsNullOrWhiteSpace(originalPath)) continue;
 
                     originalPath = Environment.ExpandEnvironmentVariables(originalPath).Trim();
@@ -3181,21 +3214,30 @@ namespace WindowsGSM
 
                     try
                     {
-                        if (Directory.Exists(originalPath))
+                        if (string.Equals(entryType, "F", StringComparison.OrdinalIgnoreCase))
                         {
-                            Directory.Delete(originalPath, true);
-                        }
+                            string extractedFile = Directory.Exists(extractedSub)
+                                ? Directory.GetFiles(extractedSub).FirstOrDefault()
+                                : null;
 
-                        if (Directory.Exists(extractedSub))
-                        {
-                            DirectoryCopy(extractedSub, originalPath);
+                            if (!string.IsNullOrWhiteSpace(extractedFile))
+                            {
+                                Directory.CreateDirectory(Path.GetDirectoryName(originalPath) ?? originalPath);
+                                File.Copy(extractedFile, originalPath, true);
+                            }
                         }
-                        else if (File.Exists(extractedSub))
+                        else
                         {
-                            Directory.CreateDirectory(Path.GetDirectoryName(originalPath) ?? originalPath);
-                            File.Copy(extractedSub, originalPath, true);
+                            if (Directory.Exists(originalPath))
+                            {
+                                Directory.Delete(originalPath, true);
+                            }
+
+                            if (Directory.Exists(extractedSub))
+                            {
+                                DirectoryCopy(extractedSub, originalPath);
+                            }
                         }
-                        else { }
                     }
                     catch (Exception e)
                     {
@@ -4455,6 +4497,48 @@ namespace WindowsGSM
                 await this.ShowMessageAsync(messageTitle, $"{message} (ID: {server.ID})");
             }
         }
+
+        private async void Tools_InstallWindrosePlus_Click(object sender, RoutedEventArgs e)
+        {
+            var server = (ServerTable)ServerGrid.SelectedItem;
+            if (server == null) { return; }
+
+            string messageTitle = "Tools - Install Windrose+";
+
+            bool? existed = InstallAddons.IsWindrosePlusExists(server);
+            if (existed == null)
+            {
+                await this.ShowMessageAsync(messageTitle, $"Doesn't support on {server.Game} (ID: {server.ID})");
+                return;
+            }
+
+            if (existed == true)
+            {
+                var reinstallResult = await this.ShowMessageAsync(messageTitle, $"Windrose+ is already installed. Reinstall/upgrade it? (ID: {server.ID})", MessageDialogStyle.AffirmativeAndNegative);
+                if (reinstallResult != MessageDialogResult.Affirmative)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                var result = await this.ShowMessageAsync(messageTitle, $"Are you sure to install? (ID: {server.ID})", MessageDialogStyle.AffirmativeAndNegative);
+                if (result != MessageDialogResult.Affirmative)
+                {
+                    return;
+                }
+            }
+
+            ProgressDialogController controller = await this.ShowProgressAsync("Installing...", "Downloading Windrose+ and running install.ps1...");
+            controller.SetIndeterminate();
+            bool installed = await InstallAddons.WindrosePlus(server);
+            await controller.CloseAsync();
+
+            string message = installed
+                ? "Installed successfully. Windrose+ will be prepared automatically before the next Windrose server start."
+                : "Fail to install";
+            await this.ShowMessageAsync(messageTitle, $"{message} (ID: {server.ID})");
+        }
         #endregion
 
         public static string GetPublicIP()
@@ -4550,12 +4634,38 @@ namespace WindowsGSM
 
         private void Refresh_EditConfig_CustomSettings(ServerConfig serverConfig, dynamic gameServer)
         {
-            _editConfigCustomSettingTextBoxes.Clear();
+            _editConfigCustomSettingControls.Clear();
             stackPanel_EC_CustomSettings.Children.Clear();
 
             var customSettings = GetCustomServerSettings(gameServer);
+            _editConfigUsesCustomServerSettingSchema = UsesCustomServerSettingSchema(gameServer);
+
+            stackPanel_EC_ServerName.Visibility = _editConfigUsesCustomServerSettingSchema ? Visibility.Collapsed : Visibility.Visible;
+            stackPanel_EC_ServerNetwork.Visibility = _editConfigUsesCustomServerSettingSchema ? Visibility.Collapsed : Visibility.Visible;
+            stackPanel_EC_ServerMap.Visibility = _editConfigUsesCustomServerSettingSchema ? Visibility.Collapsed : Visibility.Visible;
+            stackPanel_EC_ServerGSLT.Visibility = _editConfigUsesCustomServerSettingSchema ? Visibility.Collapsed : Visibility.Visible;
+
+            MahAppFlyout_EditConfig.Width = _editConfigUsesCustomServerSettingSchema ? 1060 : double.NaN;
+            scrollViewer_EC_CustomSettings.Width = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
+            scrollViewer_EC_CustomSettings.MaxHeight = _editConfigUsesCustomServerSettingSchema ? 520 : 220;
+            textbox_EC_ServerParam.Width = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
+            textbox_EC_ServerParam.Height = _editConfigUsesCustomServerSettingSchema ? 120 : double.NaN;
+            button_EC_SaveConfig.Width = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
+
             stackPanel_EC_CustomSettingsContainer.Visibility = customSettings.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
             if (customSettings.Count == 0) { return; }
+
+            System.Windows.Controls.Panel settingsPanel = stackPanel_EC_CustomSettings;
+            if (_editConfigUsesCustomServerSettingSchema)
+            {
+                var wrapPanel = new System.Windows.Controls.WrapPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    ItemWidth = 335
+                };
+                stackPanel_EC_CustomSettings.Children.Add(wrapPanel);
+                settingsPanel = wrapPanel;
+            }
 
             foreach (var setting in customSettings)
             {
@@ -4565,23 +4675,94 @@ namespace WindowsGSM
                     value = setting.DefaultValue ?? string.Empty;
                 }
 
-                var row = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+                var row = new StackPanel
+                {
+                    Margin = _editConfigUsesCustomServerSettingSchema
+                        ? new Thickness(0, 0, 10, 8)
+                        : new Thickness(0, 0, 0, 8)
+                };
                 row.Children.Add(new Label { Content = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label, Padding = new Thickness(0, 0, 0, 3) });
 
-                var textBox = new System.Windows.Controls.TextBox
+                System.Windows.Controls.Control editor = CreateCustomSettingEditor(setting, value, _editConfigUsesCustomServerSettingSchema ? 310 : 480);
+
+                row.Children.Add(editor);
+                settingsPanel.Children.Add(row);
+                _editConfigCustomSettingControls[setting.Key] = editor;
+            }
+        }
+
+        private static System.Windows.Controls.Control CreateCustomSettingEditor(CustomServerSetting setting, string value, double width)
+        {
+            var options = setting.Options?.Where(option => option != null).ToList() ?? new List<string>();
+            if (options.Count > 0)
+            {
+                var comboBox = new System.Windows.Controls.ComboBox
                 {
-                    Height = 23,
-                    Width = 480,
-                    TextWrapping = TextWrapping.Wrap,
-                    Text = value,
+                    Height = 25,
+                    Width = width,
                     FontFamily = new FontFamily("Consolas"),
                     VerticalAlignment = VerticalAlignment.Top
                 };
 
-                row.Children.Add(textBox);
-                stackPanel_EC_CustomSettings.Children.Add(row);
-                _editConfigCustomSettingTextBoxes[setting.Key] = textBox;
+                foreach (string option in options)
+                {
+                    comboBox.Items.Add(option);
+                }
+
+                comboBox.SelectedItem = options.FirstOrDefault(option => string.Equals(option, value, StringComparison.OrdinalIgnoreCase)) ?? options.FirstOrDefault();
+                return comboBox;
             }
+
+            bool isBackupList =
+                string.Equals(setting.Key, "saveslocation", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(setting.Key, "fileslocation", StringComparison.OrdinalIgnoreCase);
+
+            return new System.Windows.Controls.TextBox
+            {
+                Height = isBackupList ? 58 : 23,
+                Width = width,
+                TextWrapping = TextWrapping.Wrap,
+                Text = value,
+                FontFamily = new FontFamily("Consolas"),
+                AcceptsReturn = false,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+        }
+
+        private static string GetCustomSettingEditorValue(System.Windows.Controls.Control editor)
+        {
+            if (editor is System.Windows.Controls.ComboBox comboBox)
+            {
+                return comboBox.SelectedItem?.ToString()?.Trim() ?? string.Empty;
+            }
+
+            if (editor is System.Windows.Controls.TextBox textBox)
+            {
+                return textBox.Text.Trim();
+            }
+
+            return string.Empty;
+        }
+
+        private static bool UsesCustomServerSettingSchema(dynamic gameServer)
+        {
+            if (gameServer == null) { return false; }
+
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null || rawSettings is string) { return false; }
+
+            if (rawSettings is CustomServerSetting) { return true; }
+
+            if (rawSettings is IEnumerable enumerable)
+            {
+                foreach (object item in enumerable)
+                {
+                    if (item is CustomServerSetting) { return true; }
+                }
+            }
+
+            return false;
         }
 
         private static List<CustomServerSetting> GetCustomServerSettings(dynamic gameServer)
@@ -4589,6 +4770,7 @@ namespace WindowsGSM
             var settings = new List<CustomServerSetting>();
             if (gameServer == null) { return settings; }
 
+            bool usesCustomServerSettingSchema = UsesCustomServerSettingSchema(gameServer);
             object rawSettings = GetMemberValue(gameServer, "CustomSettings");
             if (rawSettings == null) { return settings; }
 
@@ -4605,7 +4787,9 @@ namespace WindowsGSM
             }
 
             return settings
-                .Where(setting => !string.IsNullOrWhiteSpace(setting.Key) && !ServerConfig.IsBuiltInSetting(setting.Key))
+                .Where(setting => !string.IsNullOrWhiteSpace(setting.Key)
+                    && !string.Equals(setting.Key, ServerConfig.SettingName.ServerParam, StringComparison.OrdinalIgnoreCase)
+                    && (usesCustomServerSettingSchema || !ServerConfig.IsBuiltInSetting(setting.Key)))
                 .GroupBy(setting => setting.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .ToList();
@@ -4641,7 +4825,8 @@ namespace WindowsGSM
                     ?? reflectedKey,
                 DefaultValue = GetMemberValue(item, "DefaultValue")?.ToString()
                     ?? GetMemberValue(item, "Default")?.ToString()
-                    ?? string.Empty
+                    ?? string.Empty,
+                Options = GetCustomServerSettingOptions(item)
             });
         }
 
@@ -4649,7 +4834,31 @@ namespace WindowsGSM
         {
             setting.Label = string.IsNullOrWhiteSpace(setting.Label) ? setting.Key : setting.Label;
             setting.DefaultValue = setting.DefaultValue ?? string.Empty;
+            setting.Options = setting.Options ?? new string[0];
             return setting;
+        }
+
+        private static string[] GetCustomServerSettingOptions(object item)
+        {
+            object rawOptions = GetMemberValue(item, "Options")
+                ?? GetMemberValue(item, "Values")
+                ?? GetMemberValue(item, "AllowedValues");
+
+            if (rawOptions == null || rawOptions is string)
+            {
+                return new string[0];
+            }
+
+            if (rawOptions is IEnumerable enumerable)
+            {
+                return enumerable
+                    .Cast<object>()
+                    .Where(option => option != null)
+                    .Select(option => option.ToString())
+                    .ToArray();
+            }
+
+            return new string[0];
         }
 
         private static object GetMemberValue(object source, string memberName)
@@ -4670,17 +4879,23 @@ namespace WindowsGSM
             if (server == null) { return; }
 
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerGame, textbox_EC_ServerGame.Text.Trim());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerName, textbox_EC_ServerName.Text.Trim());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerIP, textbox_EC_ServerIP.Text.Trim());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMaxPlayer, numericUpDown_EC_ServerMaxplayer.Value.ToString());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerPort, numericUpDown_EC_ServerPort.Value.ToString());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerQueryPort, numericUpDown_EC_ServerQueryPort.Value.ToString());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMap, textbox_EC_ServerMap.Text.Trim());
-            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerGSLT, textbox_EC_ServerGSLT.Text.Trim());
-            foreach (var customSetting in _editConfigCustomSettingTextBoxes)
+
+            if (!_editConfigUsesCustomServerSettingSchema)
             {
-                ServerConfig.SetSetting(server.ID, customSetting.Key, customSetting.Value.Text.Trim());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerName, textbox_EC_ServerName.Text.Trim());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerIP, textbox_EC_ServerIP.Text.Trim());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMaxPlayer, numericUpDown_EC_ServerMaxplayer.Value.ToString());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerPort, numericUpDown_EC_ServerPort.Value.ToString());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerQueryPort, numericUpDown_EC_ServerQueryPort.Value.ToString());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerMap, textbox_EC_ServerMap.Text.Trim());
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerGSLT, textbox_EC_ServerGSLT.Text.Trim());
             }
+
+            foreach (var customSetting in _editConfigCustomSettingControls)
+            {
+                ServerConfig.SetSetting(server.ID, customSetting.Key, GetCustomSettingEditorValue(customSetting.Value));
+            }
+
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerParam, textbox_EC_ServerParam.Text.Trim());
 
             LoadServerTable();

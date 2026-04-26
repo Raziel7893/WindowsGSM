@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -172,13 +173,20 @@ namespace WindowsGSM.Functions
 
         public void SetData(string serverGame, string serverName, dynamic gameServer)
         {
+            bool usesCustomServerSettingSchema = UsesCustomServerSettingSchema(gameServer);
+            string defaultPort = GetCustomServerSettingDefault(gameServer, SettingName.ServerPort, gameServer.Port);
+
             ServerGame = serverGame;
             ServerName = serverName;
-            ServerIP = GetIPAddress();
-            ServerPort = GetAvailablePort(gameServer.Port, gameServer.PortIncrements);
-            ServerQueryPort = (int.Parse(ServerPort) - int.Parse(gameServer.Port) + int.Parse(gameServer.QueryPort)).ToString(); // Magic
-            ServerMap = gameServer.Defaultmap;
-            ServerMaxPlayer = gameServer.Maxplayers;
+            ServerIP = GetCustomServerSettingDefault(gameServer, SettingName.ServerIP, GetIPAddress());
+            ServerPort = GetAvailablePort(defaultPort, gameServer.PortIncrements);
+            ServerQueryPort = GetCustomServerSettingDefault(
+                gameServer,
+                SettingName.ServerQueryPort,
+                (int.Parse(ServerPort) - int.Parse(gameServer.Port) + int.Parse(gameServer.QueryPort)).ToString()
+            ); // Magic
+            ServerMap = GetCustomServerSettingDefault(gameServer, SettingName.ServerMap, gameServer.Defaultmap);
+            ServerMaxPlayer = GetCustomServerSettingDefault(gameServer, SettingName.ServerMaxPlayer, gameServer.Maxplayers);
             ServerGSLT = string.Empty;
             ServerParam = gameServer.Additional;
             EmbedConsole = false;
@@ -207,6 +215,87 @@ namespace WindowsGSM.Functions
             RconIp = GetIPAddress();
             RconPort = "0";
             RconPassword = "";
+
+            if (usesCustomServerSettingSchema)
+            {
+                ApplyCustomServerSettingDefaults(gameServer);
+            }
+        }
+
+        private void ApplyCustomServerSettingDefaults(dynamic gameServer)
+        {
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null || rawSettings is string) { return; }
+
+            if (rawSettings is IEnumerable enumerable)
+            {
+                foreach (object item in enumerable)
+                {
+                    string key = GetMemberValue(item, "Key")?.ToString()
+                        ?? GetMemberValue(item, "Name")?.ToString()
+                        ?? GetMemberValue(item, "SettingName")?.ToString();
+
+                    if (string.IsNullOrWhiteSpace(key) || IsBuiltInSetting(key)) { continue; }
+
+                    CustomSettings[key] = GetMemberValue(item, "DefaultValue")?.ToString()
+                        ?? GetMemberValue(item, "Default")?.ToString()
+                        ?? string.Empty;
+                }
+            }
+        }
+
+        private static string GetCustomServerSettingDefault(dynamic gameServer, string settingName, string fallback)
+        {
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null || rawSettings is string) { return fallback; }
+
+            if (rawSettings is IEnumerable enumerable)
+            {
+                foreach (object item in enumerable)
+                {
+                    string key = GetMemberValue(item, "Key")?.ToString()
+                        ?? GetMemberValue(item, "Name")?.ToString()
+                        ?? GetMemberValue(item, "SettingName")?.ToString();
+
+                    if (!string.Equals(key, settingName, StringComparison.OrdinalIgnoreCase)) { continue; }
+
+                    string value = GetMemberValue(item, "DefaultValue")?.ToString()
+                        ?? GetMemberValue(item, "Default")?.ToString();
+
+                    return string.IsNullOrWhiteSpace(value) ? fallback : value;
+                }
+            }
+
+            return fallback;
+        }
+
+        private static bool UsesCustomServerSettingSchema(dynamic gameServer)
+        {
+            object rawSettings = GetMemberValue(gameServer, "CustomSettings");
+            if (rawSettings == null || rawSettings is string) { return false; }
+            if (rawSettings is CustomServerSetting) { return true; }
+
+            if (rawSettings is IEnumerable enumerable)
+            {
+                foreach (object item in enumerable)
+                {
+                    if (item is CustomServerSetting) { return true; }
+                }
+            }
+
+            return false;
+        }
+
+        private static object GetMemberValue(object source, string memberName)
+        {
+            if (source == null) { return null; }
+
+            var type = source.GetType();
+            var property = type.GetProperty(memberName);
+            if (property != null) { return property.GetValue(source); }
+
+            var field = type.GetField(memberName);
+            return field?.GetValue(source);
         }
 
         public bool CreateWindowsGSMConfig()
@@ -260,6 +349,15 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.RconIp}=\"{ServerIP}\"");
                     textwriter.WriteLine($"{SettingName.RconPort}=\"0\"");
                     textwriter.WriteLine($"{SettingName.RconPassword}=\"\"");
+
+                    if (CustomSettings.Count > 0)
+                    {
+                        textwriter.WriteLine(string.Empty);
+                        foreach (var customSetting in CustomSettings)
+                        {
+                            textwriter.WriteLine($"{customSetting.Key}=\"{customSetting.Value}\"");
+                        }
+                    }
                 }
 
                 return true;
@@ -386,7 +484,7 @@ namespace WindowsGSM.Functions
         {
             foreach (var field in typeof(SettingName).GetFields())
             {
-                if (field.IsLiteral && !field.IsInitOnly && string.Equals(field.GetRawConstantValue()?.ToString(), settingName, StringComparison.Ordinal))
+                if (field.IsLiteral && !field.IsInitOnly && string.Equals(field.GetRawConstantValue()?.ToString(), settingName, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }

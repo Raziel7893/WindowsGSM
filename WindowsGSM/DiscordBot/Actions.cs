@@ -263,7 +263,7 @@ namespace WindowsGSM.DiscordBot
                         await interaction.FollowupAsync(
                             $"Server {serverName}(ID: {serverId}) {(backuped ? "Backup Complete" : "Failed to Backup")}.");
                     }
-                    else if (serverStatus == MainWindow.ServerStatus.Backuping)
+                    else if (serverStatus == MainWindow.ServerStatus.Backup)
                     {
                         await interaction.FollowupAsync($"Server {serverName}(ID: {serverId}) already backing up.");
                     }

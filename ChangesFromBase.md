@@ -48,10 +48,6 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
     - Add query/RCON heartbeat checks so a hung server is not treated as healthy just because the process is still running.
     - Allow auto-restart thresholds based on repeated failed checks.
     - Surface the last successful health check and recent failure reason in the UI.
-  - Backup improvements
-    - Add retention policies such as keeping the last N backups or pruning by age/size.
-    - Add archive verification/checksum support so admins can tell whether a backup is usable.
-    - Consider a lightweight restore-test workflow or validation pass for backup contents.
   - Config validation
     - Validate ports, paths, cron syntax, tokens, duplicate server names, and required runtime locations before saving.
     - Warn about conflicting ports across configured servers.
@@ -121,10 +117,23 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
 - Added plugin custom server settings support
   - Added `CustomServerSetting` so plugins can declare editable per-plugin settings.
   - Plugins can expose `CustomSettings` as either simple strings or `CustomServerSetting` objects.
-  - `Edit WindowsGSM.cfg` now shows a scrollable `Plugin Settings` section between `Server GSLT` and `Server Start Param` when a plugin declares custom fields.
+  - `CustomServerSetting` now supports optional allowed values, which render as dropdowns in `Edit WindowsGSM.cfg`.
+  - Old plugins remain backward compatible:
+    - Plugins without `CustomSettings` keep the original edit config layout.
+    - Plugins using simple string `CustomSettings` keep the original custom-setting behavior and built-in fields are still edited through the normal WindowsGSM fields.
+  - Plugins using typed `CustomServerSetting` objects can now use the custom settings schema as the full editable config surface.
+  - In schema mode, `Server ID` and `Server Game` remain fixed at the top, `Server Start Param` stays as its own field, and other built-in settings can be declared directly by the plugin schema.
+  - In schema mode, `Edit WindowsGSM.cfg` opens wider and lays plugin fields out in three wrapping columns.
+  - Backup list fields declared as `saveslocation` or `fileslocation` render as taller wrapped text boxes while normal fields keep compact spacing.
   - Custom plugin values are saved into `WindowsGSM.cfg`.
+  - New installs seed configured defaults from typed `CustomServerSetting` declarations.
   - `ServerConfig` now preserves unknown/custom config keys and exposes `GetCustomSetting(...)` helpers.
   - Plugin skeleton examples were updated to show the new `CustomSettings` pattern.
+
+- Added Windrose+ addon installation support
+  - Added `Tools > Install Addons > Windrose+` for Windrose Dedicated Server entries.
+  - The installer downloads the latest `WindrosePlus.zip`, extracts it safely into the selected server's `serverfiles` folder, and runs `install.ps1`.
+  - The installer can detect existing Windrose+ installs and offer reinstall/upgrade.
 
 - Improved crash and runtime diagnostics
   - Added detailed crash log generation under `logs\servers\<serverId>\crash_*.log`.
@@ -163,8 +172,14 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
 
 - Improved backup performance and portability
   - Backups now stream files directly into `System.IO.Compression.ZipArchive` instead of copying the configured source paths to a temporary folder before zipping.
-  - `BackupConfig.cfg` path entries for `backuplocation` and `saveslocation` can now be rebased to the current `WGSM_PATH` when the WindowsGSM folder is copied or moved.
+  - `BackupConfig.cfg` path entries for `backuplocation`, `saveslocation`, and `fileslocation` can now be rebased to the current `WGSM_PATH` when the WindowsGSM folder is copied or moved.
   - Corrected rebased backup paths are persisted back into `BackupConfig.cfg`.
+  - Added `fileslocation` support so individual files can be included in backups alongside save folders.
+  - `saveslocation` and `fileslocation` support multiple entries separated by either `;` or `|`, preserving old semicolon-separated configs while allowing cleaner pipe-separated plugin values.
+  - Backup settings can now be overridden from `WindowsGSM.cfg` custom settings using `backuplocation`, `saveslocation`, `fileslocation`, and `maximumbackups`.
+  - Backup manifests now distinguish folder and file entries so restores can put individual files back in their original locations.
+  - Backup retention via `maximumbackups` is integrated with both `BackupConfig.cfg` and plugin/custom settings.
+  - fixed `Backuping`....
 
 - Cleaned warning-prone code
   - Converted optional `Notice` fields from unassigned fields to properties across game server classes.
