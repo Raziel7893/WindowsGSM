@@ -7,6 +7,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
 using WindowsGSM.Functions;
 
 namespace WindowsGSM.Installer
@@ -19,8 +20,15 @@ namespace WindowsGSM.Installer
         private static readonly string _exeFile = "steamcmd.exe";
         private static readonly string _installPath = ServerPath.GetBin("steamcmd");
         private static readonly string _userDataPath = Path.Combine(_installPath, "userData.txt");
+        private static readonly Dictionary<string, SteamBranchOptions> _pendingSteamBranchOptions = new Dictionary<string, SteamBranchOptions>();
         private string _param;
         public string Error;
+
+        private class SteamBranchOptions
+        {
+            public string Branch { get; set; }
+            public string Password { get; set; }
+        }
 
         public SteamCMD()
         {
@@ -76,7 +84,7 @@ namespace WindowsGSM.Installer
         }
 
         // Old parameter script
-        public void SetParameter(string installDir, string modName, string appId, bool validate, bool loginAnonymous = true)
+        public void SetParameter(string installDir, string modName, string appId, bool validate, bool loginAnonymous = true, string serverId = null)
         {
             _param = $"+force_install_dir \"{installDir}\"";
 
@@ -124,14 +132,15 @@ namespace WindowsGSM.Installer
                 _param += $" +login \"{steamUser}\" \"{steamPass}\"";
             }
 
-            _param += (string.IsNullOrWhiteSpace(modName) ? string.Empty : $" +app_set_config 90 mod {modName}") + $" +app_update {appId}" + (validate ? " validate" : "");
+            string steamBranchArguments = GetSteamBranchArguments(serverId);
+            _param += (string.IsNullOrWhiteSpace(modName) ? string.Empty : $" +app_set_config 90 mod {modName}") + $" +app_update {appId}" + steamBranchArguments + (validate ? " validate" : "");
 
             if (appId == "90")
             {
                 //Install 4 more times if hlds.exe
                 for (int i = 0; i < 4; i++)
                 {
-                    _param += $" +app_update {appId}" + (validate ? " validate" : string.Empty);
+                    _param += $" +app_update {appId}" + steamBranchArguments + (validate ? " validate" : string.Empty);
                 }
             }
 
@@ -139,7 +148,7 @@ namespace WindowsGSM.Installer
         }
 
         // New parameter script
-        public static string GetParameter(string forceInstallDir, string appId, bool validate = true, bool loginAnonymous = true, string modName = null, string custom = null)
+        public static string GetParameter(string forceInstallDir, string appId, bool validate = true, bool loginAnonymous = true, string modName = null, string custom = null, string serverId = null)
         {
             var sb = new StringBuilder();
 
@@ -167,6 +176,12 @@ namespace WindowsGSM.Installer
                 // Set up app_update parameter
                 sb.Append($" +app_update {appId}");
 
+                // Set up branch/password parameters from WindowsGSM.cfg unless a game-specific custom argument already chose a beta branch.
+                if (string.IsNullOrWhiteSpace(custom) || !custom.Contains("-beta", StringComparison.OrdinalIgnoreCase))
+                {
+                    sb.Append(GetSteamBranchArguments(serverId));
+                }
+
                 // Set up app_update extra parameter
                 sb.Append(!string.IsNullOrWhiteSpace(custom) ? $" {custom}" : string.Empty); // custom parameter like -beta latest_experimental
 
@@ -180,6 +195,80 @@ namespace WindowsGSM.Installer
             sb.Append(" +quit");
 
             return sb.ToString();
+        }
+
+        public static void SetPendingSteamBranch(string serverId, string branch, string password)
+        {
+            if (string.IsNullOrWhiteSpace(serverId)) { return; }
+
+            if (string.IsNullOrWhiteSpace(branch) && string.IsNullOrWhiteSpace(password))
+            {
+                _pendingSteamBranchOptions.Remove(serverId);
+                return;
+            }
+
+            _pendingSteamBranchOptions[serverId] = new SteamBranchOptions
+            {
+                Branch = branch?.Trim() ?? string.Empty,
+                Password = password?.Trim() ?? string.Empty
+            };
+        }
+
+        public static string GetConfiguredSteamBranch(string serverId)
+        {
+            if (!string.IsNullOrWhiteSpace(serverId) && _pendingSteamBranchOptions.TryGetValue(serverId, out SteamBranchOptions pending))
+            {
+                return pending.Branch ?? string.Empty;
+            }
+
+            return string.IsNullOrWhiteSpace(serverId) ? string.Empty : ServerConfig.GetSetting(serverId, ServerConfig.SettingName.SteamBranch);
+        }
+
+        public static string GetConfiguredSteamBranchPassword(string serverId)
+        {
+            if (!string.IsNullOrWhiteSpace(serverId) && _pendingSteamBranchOptions.TryGetValue(serverId, out SteamBranchOptions pending))
+            {
+                return pending.Password ?? string.Empty;
+            }
+
+            return string.IsNullOrWhiteSpace(serverId) ? string.Empty : ServerConfig.GetSetting(serverId, ServerConfig.SettingName.SteamBranchPassword);
+        }
+
+        public static bool IsSteamBranchChangePending(string serverId)
+        {
+            string branch = GetConfiguredSteamBranch(serverId);
+            string lastInstalled = ServerConfig.GetSetting(serverId, ServerConfig.SettingName.SteamBranchLastInstalled);
+            return !string.Equals(branch ?? string.Empty, lastInstalled ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static void MarkSteamBranchInstalled(string serverId)
+        {
+            if (string.IsNullOrWhiteSpace(serverId)) { return; }
+
+            ServerConfig.SetSetting(serverId, ServerConfig.SettingName.SteamBranchLastInstalled, GetConfiguredSteamBranch(serverId));
+            _pendingSteamBranchOptions.Remove(serverId);
+        }
+
+        private static string GetSteamBranchArguments(string serverId)
+        {
+            string branch = GetConfiguredSteamBranch(serverId);
+            if (string.IsNullOrWhiteSpace(branch)) { return string.Empty; }
+
+            var sb = new StringBuilder();
+            sb.Append($" -beta \"{EscapeSteamCmdArgument(branch)}\"");
+
+            string password = GetConfiguredSteamBranchPassword(serverId);
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                sb.Append($" -betapassword \"{EscapeSteamCmdArgument(password)}\"");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string EscapeSteamCmdArgument(string value)
+        {
+            return (value ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
 
         // New parameter script
@@ -261,7 +350,7 @@ namespace WindowsGSM.Installer
             // Fix the SteamCMD issue
             Directory.CreateDirectory(Path.Combine(ServerPath.GetServersServerFiles(serverId), "steamapps"));
 
-            SetParameter(ServerPath.GetServersServerFiles(serverId), modName, appId, validate, loginAnonymous);
+            SetParameter(ServerPath.GetServersServerFiles(serverId), modName, appId, validate, loginAnonymous, serverId);
             Process p = await Run();
             SendEnterPreventFreeze(p);
             return p;
@@ -272,7 +361,7 @@ namespace WindowsGSM.Installer
         {
             if (string.IsNullOrWhiteSpace(custom) || !custom.Contains("-overrideminos"))
                 custom = custom + " -overrideminos";
-            string param = GetParameter(ServerPath.GetServersServerFiles(serverId), appId, validate, loginAnonymous, modName, custom);
+            string param = GetParameter(ServerPath.GetServersServerFiles(serverId), appId, validate, loginAnonymous, modName, custom, serverId);
             if (param == null)
             {
                 return (null, "Steam account not set up");
@@ -324,7 +413,7 @@ namespace WindowsGSM.Installer
         // Old
         public async Task<bool> Update(string serverId, string modName, string appId, bool validate, bool loginAnonymous = true)
         {
-            SetParameter(Functions.ServerPath.GetServersServerFiles(serverId), modName, appId, validate, loginAnonymous);
+            SetParameter(Functions.ServerPath.GetServersServerFiles(serverId), modName, appId, validate, loginAnonymous, serverId);
 
             Process p = await Run();
             if (p == null)
@@ -412,7 +501,7 @@ namespace WindowsGSM.Installer
             return matches[0].Groups[1].Value;
         }
 
-        public async Task<string> GetRemoteBuild(string appId)
+        public async Task<string> GetRemoteBuild(string appId, string branch = null)
         {
             string exePath = Path.Combine(_installPath, "steamcmd.exe");
             if (!File.Exists(exePath))
@@ -466,16 +555,101 @@ namespace WindowsGSM.Installer
             SendEnterPreventFreeze(p);
 
             string output = await p.StandardOutput.ReadToEndAsync();
-            Regex regex = new Regex("\"public\"\r\n.{0,}{\r\n.{0,}\"buildid\".{1,}\"(.*?)\"");
+            string targetBranch = string.IsNullOrWhiteSpace(branch) ? "public" : branch;
+            Regex regex = new Regex($"\"{Regex.Escape(targetBranch)}\"\\s*\\r?\\n\\s*{{.*?\"buildid\"\\s*\"(.*?)\"", RegexOptions.Singleline | RegexOptions.IgnoreCase);
             var matches = regex.Matches(output);
 
-            if (matches.Count < 1 || matches[1].Groups.Count < 2)
+            if (matches.Count < 1 || matches[0].Groups.Count < 2)
             {
                 Error = $"Fail to get remote build";
                 return string.Empty;
             }
 
             return matches[0].Groups[1].Value;
+        }
+
+        public async Task<List<string>> GetBranches(string appId, bool loginAnonymous = true)
+        {
+            string exePath = Path.Combine(_installPath, "steamcmd.exe");
+            if (!File.Exists(exePath))
+            {
+                if (!await Download())
+                {
+                    Error = "Fail to download steamcmd.exe";
+                    return new List<string>();
+                }
+            }
+
+            string login = "+login anonymous";
+            if (!loginAnonymous)
+            {
+                var (username, password) = GetSteamUsernamePassword();
+                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                {
+                    Error = "Steam account is not set";
+                    return new List<string>();
+                }
+
+                login = $"+login \"{EscapeSteamCmdArgument(username)}\" \"{EscapeSteamCmdArgument(password)}\"";
+            }
+
+            var firewall = new WindowsFirewall("steamcmd.exe", exePath);
+            if (!await firewall.IsRuleExist())
+            {
+                await firewall.AddRule();
+            }
+
+            Process p = new Process
+            {
+                StartInfo =
+                {
+                    FileName = exePath,
+                    Arguments = $"{login} -overrideminos +app_info_update 1 +app_info_print {appId} +logoff +quit",
+                    WindowStyle = ProcessWindowStyle.Minimized,
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                }
+            };
+
+            p.Start();
+            SendEnterPreventFreeze(p);
+            string output = await p.StandardOutput.ReadToEndAsync();
+            string error = await p.StandardError.ReadToEndAsync();
+            await Task.Run(() => p.WaitForExit());
+
+            if (p.ExitCode != 0)
+            {
+                Error = string.IsNullOrWhiteSpace(error) ? $"SteamCMD exited with code {p.ExitCode}" : error.Trim();
+                return new List<string>();
+            }
+
+            int branchesIndex = output.IndexOf("\"branches\"", StringComparison.OrdinalIgnoreCase);
+            if (branchesIndex < 0)
+            {
+                Error = "Steam branch list was not found in app info.";
+                return new List<string>();
+            }
+
+            string branchOutput = output.Substring(branchesIndex);
+            var branchNames = Regex.Matches(branchOutput, "\"([^\"]+)\"\\s*\\r?\\n\\s*\\{\\s*\\r?\\n\\s*\"buildid\"", RegexOptions.IgnoreCase)
+                .Cast<Match>()
+                .Select(match => match.Groups[1].Value)
+                .Where(branch => !string.IsNullOrWhiteSpace(branch))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(branch => string.Equals(branch, "public", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(branch => branch)
+                .ToList();
+
+            if (branchNames.Count == 0)
+            {
+                Error = "No Steam branches were returned. You can still enter a branch manually.";
+            }
+
+            return branchNames;
         }
 
         public void CreateUserDataTxtIfNotExist()

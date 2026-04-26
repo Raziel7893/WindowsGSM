@@ -1781,6 +1781,7 @@ namespace WindowsGSM
             {
                 textbox_InstallServerName.IsEnabled = true;
                 comboBox_InstallGameServer.IsEnabled = true;
+                stackPanel_InstallSteamBranch.IsEnabled = true;
                 progressbar_InstallProgress.IsIndeterminate = false;
                 textblock_InstallProgress.Text = string.Empty;
                 button_Install.IsEnabled = true;
@@ -1829,6 +1830,7 @@ namespace WindowsGSM
             //Installation start
             textbox_InstallServerName.IsEnabled = false;
             comboBox_InstallGameServer.IsEnabled = false;
+            stackPanel_InstallSteamBranch.IsEnabled = false;
             progressbar_InstallProgress.IsIndeterminate = true;
             textblock_InstallProgress.Text = "Installing";
             button_Install.IsEnabled = false;
@@ -1840,6 +1842,9 @@ namespace WindowsGSM
             newServerConfig.CreateServerDirectory();
 
             dynamic gameServer = GameServer.Data.Class.Get(servergame, newServerConfig, PluginsList);
+            string steamBranch = GetInstallSteamBranch();
+            string steamBranchPassword = textbox_InstallSteamBranchPassword.Text.Trim();
+            WindowsGSM.Installer.SteamCMD.SetPendingSteamBranch(newServerConfig.ServerID, steamBranch, steamBranchPassword);
             Installer = await gameServer.Install();
 
             if (Installer != null)
@@ -1866,6 +1871,9 @@ namespace WindowsGSM
 
                 // Create WindowsGSM.cfg
                 newServerConfig.SetData(servergame, servername, gameServer);
+                newServerConfig.SteamBranch = steamBranch;
+                newServerConfig.SteamBranchPassword = steamBranchPassword;
+                newServerConfig.SteamBranchLastInstalled = steamBranch;
                 newServerConfig.CreateWindowsGSMConfig();
 
                 // Create WindowsGSM.cfg and game server config
@@ -1885,6 +1893,7 @@ namespace WindowsGSM
                 MahAppFlyout_InstallGameServer.IsOpen = false;
                 textbox_InstallServerName.IsEnabled = true;
                 comboBox_InstallGameServer.IsEnabled = true;
+                stackPanel_InstallSteamBranch.IsEnabled = true;
                 progressbar_InstallProgress.IsIndeterminate = false;
 
                 if (MahAppSwitch_SendStatistics.IsOn)
@@ -1904,18 +1913,50 @@ namespace WindowsGSM
             {
                 textbox_InstallServerName.IsEnabled = true;
                 comboBox_InstallGameServer.IsEnabled = true;
+                stackPanel_InstallSteamBranch.IsEnabled = true;
                 progressbar_InstallProgress.IsIndeterminate = false;
                 textblock_InstallProgress.Text = "Install";
                 button_Install.IsEnabled = true;
+                WindowsGSM.Installer.SteamCMD.SetPendingSteamBranch(newServerConfig.ServerID, string.Empty, string.Empty);
 
-                if (Installer != null)
+                if (Installer != null && Installer.ExitCode != 0)
                 {
                     textblock_InstallProgress.Text = "Fail to install [ERROR] Exit code: " + Installer.ExitCode;
                 }
                 else
                 {
-                    textblock_InstallProgress.Text = $"Fail to install [ERROR] {gameServer.Error}";
+                    string installError = string.IsNullOrWhiteSpace(gameServer.Error)
+                        ? "SteamCMD finished, but WindowsGSM could not validate the installed server files."
+                        : gameServer.Error;
+                    textblock_InstallProgress.Text = "Fail to install [ERROR] Validation failed. See Install Log.";
+                    AppendInstallLogLine($"Install validation failed: {installError}");
+                    WriteInstallFailureReport(newServerConfig, servergame, servername, steamBranch, installError, Installer?.ExitCode);
                 }
+            }
+        }
+
+        private void WriteInstallFailureReport(ServerConfig serverConfig, string serverGame, string serverName, string steamBranch, string error, int? exitCode)
+        {
+            try
+            {
+                Directory.CreateDirectory(ServerPath.GetServersConfigs(serverConfig.ServerID));
+                var report = new StringBuilder();
+                report.AppendLine("WindowsGSM install did not complete.");
+                report.AppendLine($"Server ID: {serverConfig.ServerID}");
+                report.AppendLine($"Server Game: {serverGame}");
+                report.AppendLine($"Server Name: {serverName}");
+                report.AppendLine($"Steam Branch: {(string.IsNullOrWhiteSpace(steamBranch) ? "public" : steamBranch)}");
+                report.AppendLine($"SteamCMD Exit Code: {(exitCode.HasValue ? exitCode.Value.ToString() : "not available")}");
+                report.AppendLine($"Reason: {error}");
+                report.AppendLine();
+                report.AppendLine("SteamCMD may have downloaded files successfully, but WindowsGSM did not create WindowsGSM.cfg because the plugin's install validation failed.");
+                report.AppendLine("Check that the selected Steam branch contains the expected dedicated server executable for this plugin.");
+
+                File.WriteAllText(ServerPath.GetServersConfigs(serverConfig.ServerID, "InstallFailure.txt"), report.ToString());
+            }
+            catch (Exception ex)
+            {
+                AppendInstallLogLine($"Could not write install failure report: {ex.Message}");
             }
         }
 
@@ -1926,11 +1967,17 @@ namespace WindowsGSM
             button_InstallSetAccount.IsEnabled = false;
             textBox_InstallToken.Visibility = Visibility.Hidden;
             button_InstallSendToken.Visibility = Visibility.Hidden;
+            comboBox_InstallSteamBranch.Items.Clear();
+            comboBox_InstallSteamBranch.Text = string.Empty;
+            PopulateSteamBranchComboBox(comboBox_InstallSteamBranch, string.Empty);
+            textbox_InstallSteamBranchPassword.Text = string.Empty;
+            stackPanel_InstallSteamBranch.Visibility = Visibility.Collapsed;
             if (selectedgame == null) { return; }
 
             try
             {
                 dynamic gameServer = GameServer.Data.Class.Get(selectedgame.Name, pluginList: PluginsList);
+                stackPanel_InstallSteamBranch.Visibility = string.IsNullOrWhiteSpace(GetSteamAppId(gameServer)) ? Visibility.Collapsed : Visibility.Visible;
                 if (!gameServer.loginAnonymous)
                 {
                     button_InstallSetAccount.IsEnabled = true;
@@ -1942,6 +1989,119 @@ namespace WindowsGSM
             {
                 // ignore
             }
+        }
+
+        private async void Button_InstallRefreshSteamBranches_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedgame = (Images.Row)comboBox_InstallGameServer.SelectedItem;
+            if (selectedgame == null) { return; }
+
+            try
+            {
+                dynamic gameServer = GameServer.Data.Class.Get(selectedgame.Name, pluginList: PluginsList);
+                string appId = GetSteamAppId(gameServer);
+                if (string.IsNullOrWhiteSpace(appId)) { return; }
+
+                button_InstallRefreshSteamBranches.IsEnabled = false;
+                string previousBranch = GetInstallSteamBranch();
+                AppendInstallLogLine($"Refreshing Steam branches for app {appId}...");
+
+                var steamCMD = new Installer.SteamCMD();
+                bool loginAnonymous = GetSteamLoginAnonymous(gameServer);
+                List<string> branches = await steamCMD.GetBranches(appId, loginAnonymous);
+
+                PopulateSteamBranchComboBox(comboBox_InstallSteamBranch, previousBranch, branches);
+                if (branches.Count > 0)
+                {
+                    AppendInstallLogLine($"Found Steam branches: {string.Join(", ", branches)}");
+                }
+                else
+                {
+                    AppendInstallLogLine($"Could not read Steam branches. {steamCMD.Error} Enter a branch manually if needed.");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendInstallLogLine($"Could not refresh Steam branches. {ex.Message}");
+            }
+            finally
+            {
+                button_InstallRefreshSteamBranches.IsEnabled = true;
+            }
+        }
+
+        private async void Button_EC_RefreshSteamBranches_Click(object sender, RoutedEventArgs e)
+        {
+            var server = (ServerTable)ServerGrid.SelectedItem;
+            if (server == null) { return; }
+
+            try
+            {
+                var serverConfig = new ServerConfig(server.ID);
+                dynamic gameServer = GameServer.Data.Class.Get(serverConfig.ServerGame, pluginList: PluginsList);
+                string appId = GetSteamAppId(gameServer);
+                if (string.IsNullOrWhiteSpace(appId)) { return; }
+
+                button_EC_RefreshSteamBranches.IsEnabled = false;
+                string previousBranch = GetComboBoxSteamBranch(comboBox_EC_SteamBranch);
+
+                var steamCMD = new Installer.SteamCMD();
+                bool loginAnonymous = GetSteamLoginAnonymous(gameServer);
+                List<string> branches = await steamCMD.GetBranches(appId, loginAnonymous);
+
+                PopulateSteamBranchComboBox(comboBox_EC_SteamBranch, previousBranch, branches);
+                if (branches.Count == 0)
+                {
+                    await this.ShowMessageAsync("Steam Branches", $"Could not read Steam branches. {steamCMD.Error}\n\nYou can still enter a branch manually.");
+                }
+            }
+            catch (Exception ex)
+            {
+                await this.ShowMessageAsync("Steam Branches", $"Could not refresh Steam branches.\n\n{ex.Message}");
+            }
+            finally
+            {
+                button_EC_RefreshSteamBranches.IsEnabled = true;
+            }
+        }
+
+        private string GetInstallSteamBranch()
+        {
+            return GetComboBoxSteamBranch(comboBox_InstallSteamBranch);
+        }
+
+        private static string GetComboBoxSteamBranch(System.Windows.Controls.ComboBox comboBox)
+        {
+            string branch = comboBox.Text?.Trim() ?? string.Empty;
+            return string.Equals(branch, "public", StringComparison.OrdinalIgnoreCase) ? string.Empty : branch;
+        }
+
+        private static void PopulateSteamBranchComboBox(System.Windows.Controls.ComboBox comboBox, string selectedBranch, IEnumerable<string> branches = null)
+        {
+            string selected = string.IsNullOrWhiteSpace(selectedBranch) ? "public" : selectedBranch.Trim();
+            comboBox.Items.Clear();
+            comboBox.Items.Add("public");
+
+            foreach (string branch in branches ?? Enumerable.Empty<string>())
+            {
+                if (!comboBox.Items.Cast<object>().Any(item => string.Equals(item.ToString(), branch, StringComparison.OrdinalIgnoreCase)))
+                {
+                    comboBox.Items.Add(branch);
+                }
+            }
+
+            comboBox.Text = selected;
+        }
+
+        private static string GetSteamAppId(dynamic gameServer)
+        {
+            return GetMemberValue(gameServer, "AppId")?.ToString() ?? string.Empty;
+        }
+
+        private static bool GetSteamLoginAnonymous(dynamic gameServer)
+        {
+            object value = GetMemberValue(gameServer, "loginAnonymous");
+            return value == null || bool.TryParse(value.ToString(), out bool loginAnonymous) && loginAnonymous;
         }
 
         private void Button_SetAccount_Click(object sender, RoutedEventArgs e)
@@ -2648,6 +2808,8 @@ namespace WindowsGSM
         private async Task<(Process, string, dynamic)> Server_BeginUpdate(ServerTable server, bool silenceCheck, bool forceUpdate, bool validate = false, string custum = null)
         {
             dynamic gameServer = GameServer.Data.Class.Get(server.Game, new ServerConfig(server.ID), PluginsList);
+            string steamAppId = GetSteamAppId(gameServer);
+            bool steamBranchChanged = !string.IsNullOrWhiteSpace(steamAppId) && WindowsGSM.Installer.SteamCMD.IsSteamBranchChangePending(server.ID);
 
             string localVersion = gameServer.GetLocalBuild();
             if (string.IsNullOrWhiteSpace(localVersion) && !silenceCheck)
@@ -2655,7 +2817,9 @@ namespace WindowsGSM
                 Log(server.ID, $"[NOTICE] {gameServer.Error}");
             }
 
-            string remoteVersion = await gameServer.GetRemoteBuild();
+            string remoteVersion = string.IsNullOrWhiteSpace(steamAppId)
+                ? await gameServer.GetRemoteBuild()
+                : await new Installer.SteamCMD().GetRemoteBuild(steamAppId, ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranch));
             if (string.IsNullOrWhiteSpace(remoteVersion) && !silenceCheck)
             {
                 Log(server.ID, $"[NOTICE] {gameServer.Error}");
@@ -2663,10 +2827,14 @@ namespace WindowsGSM
 
             if (!silenceCheck)
             {
-                Log(server.ID, $"Checking: Version ({localVersion}) => ({remoteVersion})");
+                Log(server.ID, $"Checking: {GetSteamBranchLogPrefix(steamAppId, server.ID)}build ({localVersion}) => ({remoteVersion})");
+                if (steamBranchChanged)
+                {
+                    Log(server.ID, $"Checking: Steam branch change required ({GetSteamBranchNameForLog(ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranchLastInstalled))}) => ({GetSteamBranchNameForLog(ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranch))})");
+                }
             }
 
-            if ((!string.IsNullOrWhiteSpace(localVersion) && !string.IsNullOrWhiteSpace(remoteVersion) && localVersion != remoteVersion) || forceUpdate)
+            if ((!string.IsNullOrWhiteSpace(localVersion) && !string.IsNullOrWhiteSpace(remoteVersion) && localVersion != remoteVersion) || forceUpdate || steamBranchChanged)
             {
                 try
                 {
@@ -2814,19 +2982,21 @@ namespace WindowsGSM
 
             //Begin Update
             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Updating;
-            Log(server.ID, "Action: Update" + notes);
+            Log(server.ID, "Action: Update" + GetSteamBranchActionSuffix(server) + notes);
             SetServerStatus(server, "Updating");
 
             var (p, remoteVersion, gameServer) = await Server_BeginUpdate(server, silenceCheck: validate, forceUpdate: true, validate: validate);
 
             if (p == null && string.IsNullOrEmpty(gameServer.Error)) // Update success (non-steamcmd server)
             {
-                Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}({remoteVersion})");
+                MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
+                Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}{GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
             }
             else if (p != null) // p stores process of steamcmd
             {
                 await Task.Run(() => { p.WaitForExit(); });
-                Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}({remoteVersion})");
+                MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
+                Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}{GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
             }
             else
             {
@@ -2838,6 +3008,49 @@ namespace WindowsGSM
             SetServerStatus(server, "Stopped");
 
             return true;
+        }
+
+        private static void MarkSteamBranchInstalledIfNeeded(string serverId, dynamic gameServer)
+        {
+            if (string.IsNullOrWhiteSpace(GetSteamAppId(gameServer))) { return; }
+
+            WindowsGSM.Installer.SteamCMD.MarkSteamBranchInstalled(serverId);
+        }
+
+        private static string GetSteamBranchLogPrefix(string steamAppId, string serverId)
+        {
+            return string.IsNullOrWhiteSpace(steamAppId)
+                ? string.Empty
+                : $"Steam branch {GetSteamBranchNameForLog(ServerConfig.GetSetting(serverId, ServerConfig.SettingName.SteamBranch))} ";
+        }
+
+        private static string GetSteamBranchLogSuffix(dynamic gameServer, string serverId)
+        {
+            return string.IsNullOrWhiteSpace(GetSteamAppId(gameServer))
+                ? string.Empty
+                : $"Steam branch {GetSteamBranchNameForLog(ServerConfig.GetSetting(serverId, ServerConfig.SettingName.SteamBranch))} ";
+        }
+
+        private static string GetSteamBranchActionSuffix(ServerTable server)
+        {
+            if (server == null) { return string.Empty; }
+
+            try
+            {
+                dynamic gameServer = GameServer.Data.Class.Get(server.Game);
+                if (string.IsNullOrWhiteSpace(GetSteamAppId(gameServer))) { return string.Empty; }
+
+                return $" | Steam branch {GetSteamBranchNameForLog(ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranch))}";
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string GetSteamBranchNameForLog(string branch)
+        {
+            return string.IsNullOrWhiteSpace(branch) ? "public" : branch;
         }
 
         private async Task<bool> GameServer_Backup(ServerTable server, string notes = "")
@@ -3484,19 +3697,27 @@ namespace WindowsGSM
                 }
 
                 //Get remote build
-                string remoteVersion = await gameServer.GetRemoteBuild();
+                string steamAppId = GetSteamAppId(gameServer);
+                string remoteVersion = string.IsNullOrWhiteSpace(steamAppId)
+                    ? await gameServer.GetRemoteBuild()
+                    : await new Installer.SteamCMD().GetRemoteBuild(steamAppId, ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranch));
+                bool steamBranchChanged = !string.IsNullOrWhiteSpace(steamAppId) && WindowsGSM.Installer.SteamCMD.IsSteamBranchChangePending(server.ID);
 
-                //Continue if success to get localVersion and remoteVersion
-                if (!string.IsNullOrWhiteSpace(localVersion) && !string.IsNullOrWhiteSpace(remoteVersion))
+                //Continue if success to get localVersion and remoteVersion, or if changing branch requires a forced update.
+                if ((!string.IsNullOrWhiteSpace(localVersion) && !string.IsNullOrWhiteSpace(remoteVersion)) || steamBranchChanged)
                 {
                     if (GetServerMetadata(server.ID).ServerStatus != ServerStatus.Started)
                     {
                         break;
                     }
 
-                    Log(server.ID, $"Checking: Version ({localVersion}) => ({remoteVersion})");
+                    Log(server.ID, $"Checking: {GetSteamBranchLogPrefix(steamAppId, server.ID)}build ({localVersion}) => ({remoteVersion})");
+                    if (steamBranchChanged)
+                    {
+                        Log(server.ID, $"Checking: Steam branch change required ({GetSteamBranchNameForLog(ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranchLastInstalled))}) => ({GetSteamBranchNameForLog(ServerConfig.GetSetting(server.ID, ServerConfig.SettingName.SteamBranch))})");
+                    }
 
-                    if (localVersion != remoteVersion)
+                    if (steamBranchChanged || localVersion != remoteVersion)
                     {
                         _serverMetadata[int.Parse(server.ID)].Process = null;
 
@@ -3520,7 +3741,8 @@ namespace WindowsGSM
 
                         if (string.IsNullOrWhiteSpace(gameServer.Error))
                         {
-                            Log(server.ID, $"Server: Updated ({remoteVersion})");
+                            MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
+                            Log(server.ID, $"Server: Updated {GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
 
                             if (GetServerMetadata(serverId).DiscordAlert && GetServerMetadata(serverId).AutoUpdateAlert)
                             {
@@ -5074,6 +5296,17 @@ namespace WindowsGSM
             }
         }
 
+        private void ServerGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var server = ServerGrid.SelectedItem as ServerTable;
+            if (server == null) { return; }
+
+            if (Refresh_EditConfig_Data(server.ID))
+            {
+                MahAppFlyout_EditConfig.IsOpen = true;
+            }
+        }
+
         private bool Refresh_EditConfig_Data(string serverId)
         {
             var serverConfig = new ServerConfig(serverId);
@@ -5090,6 +5323,11 @@ namespace WindowsGSM
             numericUpDown_EC_ServerQueryPort.Value = int.TryParse(serverConfig.ServerQueryPort, out var queryPort) ? queryPort : int.Parse(gameServer.QueryPort);
             textbox_EC_ServerMap.Text = serverConfig.ServerMap;
             textbox_EC_ServerGSLT.Text = serverConfig.ServerGSLT;
+            bool isSteamServer = !string.IsNullOrWhiteSpace(GetSteamAppId(gameServer));
+            stackPanel_EC_SteamBranch.Visibility = isSteamServer ? Visibility.Visible : Visibility.Collapsed;
+            PopulateSteamBranchComboBox(comboBox_EC_SteamBranch, serverConfig.SteamBranch);
+            textbox_EC_SteamBranchPassword.Text = serverConfig.SteamBranchPassword ?? string.Empty;
+            textbox_EC_SteamBranchLastInstalled.Text = serverConfig.SteamBranchLastInstalled ?? string.Empty;
             Refresh_EditConfig_CustomSettings(serverConfig, gameServer);
             textbox_EC_ServerParam.Text = serverConfig.ServerParam;
             return true;
@@ -5114,6 +5352,10 @@ namespace WindowsGSM
             textbox_EC_ServerParam.Width = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
             textbox_EC_ServerParam.Height = _editConfigUsesCustomServerSettingSchema ? 120 : double.NaN;
             button_EC_SaveConfig.Width = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
+            double editFieldWidth = _editConfigUsesCustomServerSettingSchema ? 1020 : 500;
+            comboBox_EC_SteamBranch.Width = editFieldWidth - 85;
+            textbox_EC_SteamBranchPassword.Width = editFieldWidth;
+            textbox_EC_SteamBranchLastInstalled.Width = editFieldWidth;
 
             stackPanel_EC_CustomSettingsContainer.Visibility = customSettings.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
             if (customSettings.Count == 0) { return; }
@@ -5357,6 +5599,12 @@ namespace WindowsGSM
             foreach (var customSetting in _editConfigCustomSettingControls)
             {
                 ServerConfig.SetSetting(server.ID, customSetting.Key, GetCustomSettingEditorValue(customSetting.Value));
+            }
+
+            if (stackPanel_EC_SteamBranch.Visibility == Visibility.Visible)
+            {
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.SteamBranch, GetComboBoxSteamBranch(comboBox_EC_SteamBranch));
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.SteamBranchPassword, textbox_EC_SteamBranchPassword.Text.Trim());
             }
 
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.ServerParam, textbox_EC_ServerParam.Text.Trim());

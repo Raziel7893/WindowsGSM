@@ -194,6 +194,17 @@
                         <Label Content="Server GSLT"></Label>
                         <TextBox x:Name="textbox_EC_ServerGSLT" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
                      </StackPanel>
+                     <StackPanel x:Name="stackPanel_EC_SteamBranch" Margin="0,0,0,10" Visibility="Collapsed">
+                        <Label Content="Steam Branch / Version"></Label>
+                        <DockPanel Margin="0,0,0,5">
+                           <Button x:Name="button_EC_RefreshSteamBranches" Content="Refresh" DockPanel.Dock="Right" Width="80" Margin="5,0,0,0" Click="Button_EC_RefreshSteamBranches_Click"/>
+                           <ComboBox x:Name="comboBox_EC_SteamBranch" Height="23" Width="415" FontFamily="Consolas" IsEditable="True" VerticalAlignment="Top"/>
+                        </DockPanel>
+                        <Label Content="Steam Branch Password"></Label>
+                        <TextBox x:Name="textbox_EC_SteamBranchPassword" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                        <Label Content="Last Installed Steam Branch"></Label>
+                        <TextBox x:Name="textbox_EC_SteamBranchLastInstalled" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
+                     </StackPanel>
                      <StackPanel x:Name="stackPanel_EC_CustomSettingsContainer" Margin="0,0,0,10" Visibility="Collapsed">
                         <Label Content="Plugin Settings"></Label>
                         <ScrollViewer x:Name="scrollViewer_EC_CustomSettings" Width="500" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -261,6 +272,16 @@
                   <DockPanel Margin="0,0,0,15" DockPanel.Dock="Top">
                      <TextBox x:Name="textbox_InstallServerName" Height="23" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
                   </DockPanel>
+
+                  <StackPanel x:Name="stackPanel_InstallSteamBranch" DockPanel.Dock="Top" Margin="0,0,0,15" Visibility="Collapsed">
+                     <Label Content="Steam Branch / Version"></Label>
+                     <DockPanel Margin="0,0,0,5">
+                        <Button x:Name="button_InstallRefreshSteamBranches" Content="Refresh" DockPanel.Dock="Right" Width="80" Margin="5,0,0,0" Click="Button_InstallRefreshSteamBranches_Click"/>
+                        <ComboBox x:Name="comboBox_InstallSteamBranch" Height="23" IsEditable="True" VerticalAlignment="Top"/>
+                     </DockPanel>
+                     <Label Content="Private Branch Password"></Label>
+                     <TextBox x:Name="textbox_InstallSteamBranchPassword" Height="23" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                  </StackPanel>
 
                   <DockPanel Margin="0,0,0,15" DockPanel.Dock="Top">
                      <Button x:Name="button_InstallSetAccount" Content="Set Account" DockPanel.Dock="Left" Width="120" Margin="0,0,5,0" Click="Button_SetAccount_Click"/>
@@ -738,6 +759,7 @@
                           GridLinesVisibility="None"
                           DockPanel.Dock="Top"
                           SelectionChanged="DataGrid_SelectionChanged"
+                          MouseDoubleClick="ServerGrid_MouseDoubleClick"
                           IsSynchronizedWithCurrentItem="True"
                           HorizontalScrollBarVisibility="Disabled">
                <DataGrid.Columns>
@@ -816,7 +838,7 @@
                   <Button x:Name="button_discordsettings" Content="Settings" HorizontalAlignment="Left" Margin="292,70,0,0" VerticalAlignment="Top" Width="85" Height="26" Click="Button_DiscordAlertSettings_Click"/>
                   <Label x:Name="label_wgsmlog" Content="Log:" HorizontalAlignment="Left" Margin="24,154,0,0" VerticalAlignment="Top"/>
                   <Button x:Name="button_clearwgsmlog" Cursor="Hand" Content="CLEAR" Margin="10,0,0,10" Height="18" Click="Button_ClearWGSMLog_Click" HorizontalAlignment="Left" Width="45" VerticalAlignment="Bottom"/>
-                  <TextBox x:Name="textBox_wgsmlog" Margin="10,157,10,10" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsReadOnly="True"/>
+                  <TextBox x:Name="textBox_wgsmlog" Margin="10,157,10,10" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" TextWrapping="Wrap" IsReadOnly="True"/>
                </Grid>
 
                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch">
