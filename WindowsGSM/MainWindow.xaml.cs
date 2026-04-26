@@ -894,7 +894,7 @@ namespace WindowsGSM
             _serverMetadata[i].AutoStartAlert = serverConfig.AutoStartAlert;
             _serverMetadata[i].AutoUpdateAlert = serverConfig.AutoUpdateAlert;
             _serverMetadata[i].AutoIpUpdateAlert = serverConfig.AutoIpUpdate;
-            _serverMetadata[i].SkipUserSetup = serverConfig.SkipUserSetup; 
+            _serverMetadata[i].SkipUserSetup = serverConfig.SkipUserSetup;
             _serverMetadata[i].RestartCrontabAlert = serverConfig.RestartCrontabAlert;
             _serverMetadata[i].CrashAlert = serverConfig.CrashAlert;
 
@@ -2138,12 +2138,18 @@ namespace WindowsGSM
             _serverMetadata[int.Parse(server.ID)].Process = null;
 
             dynamic gameServer = GameServer.Data.Class.Get(server.Game, pluginList: PluginsList);
-            await gameServer.Stop(p);
-
-            for (int i = 0; i < 10; i++)
+            try
             {
-                if (p == null || p.HasExited) { break; }
-                await Task.Delay(1000);
+                await gameServer.Stop(p);
+                for (int i = 0; i < 10; i++)
+                {
+                    if (p == null || p.HasExited) { break; }
+                    await Task.Delay(1000);
+                }
+            }
+            catch (Exception)
+            {
+                ProcessManagement.StopProcess(p);//no stop function most likely, try windows graceful shutdown
             }
 
             _serverMetadata[int.Parse(server.ID)].ServerConsole.Clear();
@@ -3035,7 +3041,7 @@ namespace WindowsGSM
                 {
                     string ip = server.IP;
                     //map "bind to all" ip to localhost
-                    if(ip.Contains("0.0.0.0"))
+                    if (ip.Contains("0.0.0.0"))
                     {
                         ip = "127.0.0.1";
                     }
@@ -3274,7 +3280,7 @@ namespace WindowsGSM
             string path = Functions.ServerPath.GetServersConfigs(server.ID);
             if (Directory.Exists(path))
             {
-                Process.Start("explorer",path);
+                Process.Start("explorer", path);
             }
         }
 
