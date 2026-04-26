@@ -165,6 +165,8 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Failed installs now write `InstallFailure.txt` into the server config folder with the selected game, branch, SteamCMD exit code, and validation error.
   - The install progress bar now keeps validation failure text short and sends full details to the install log/failure report so long paths do not get clipped.
   - Update and auto-update logs now include the configured Steam branch and build IDs so branch updates do not look like plain public-version updates.
+  - Pending Steam branch install state is cleared after a successful install writes `WindowsGSM.cfg`, so later config edits are not masked by install-time branch values.
+  - `steambranch_lastinstalled` is now updated only after SteamCMD exits successfully, so failed branch updates keep retrying instead of being marked complete.
 
 - Fixed 7 Days to Die startup/config issues
   - Removed the `-quit` launch argument from the 7 Days to Die server start command.

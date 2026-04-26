@@ -1875,6 +1875,7 @@ namespace WindowsGSM
                 newServerConfig.SteamBranchPassword = steamBranchPassword;
                 newServerConfig.SteamBranchLastInstalled = steamBranch;
                 newServerConfig.CreateWindowsGSMConfig();
+                WindowsGSM.Installer.SteamCMD.SetPendingSteamBranch(newServerConfig.ServerID, string.Empty, string.Empty);
 
                 // Create WindowsGSM.cfg and game server config
                 try
@@ -2995,8 +2996,16 @@ namespace WindowsGSM
             else if (p != null) // p stores process of steamcmd
             {
                 await Task.Run(() => { p.WaitForExit(); });
-                MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
-                Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}{GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
+                if (p.ExitCode == 0)
+                {
+                    MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
+                    Log(server.ID, $"Server: Updated {(validate ? "Validate " : string.Empty)}{GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
+                }
+                else
+                {
+                    Log(server.ID, "Server: Fail to update");
+                    Log(server.ID, $"[ERROR] SteamCMD exited with code {p.ExitCode}");
+                }
             }
             else
             {
@@ -3737,9 +3746,15 @@ namespace WindowsGSM
                         SetServerStatus(server, "Updating");
 
                         //Update the server
-                        await gameServer.Update();
+                        Process updateProcess = await gameServer.Update();
+                        int? updateExitCode = null;
+                        if (updateProcess != null)
+                        {
+                            await Task.Run(() => updateProcess.WaitForExit());
+                            updateExitCode = updateProcess.ExitCode;
+                        }
 
-                        if (string.IsNullOrWhiteSpace(gameServer.Error))
+                        if (string.IsNullOrWhiteSpace(gameServer.Error) && (!updateExitCode.HasValue || updateExitCode.Value == 0))
                         {
                             MarkSteamBranchInstalledIfNeeded(server.ID, gameServer);
                             Log(server.ID, $"Server: Updated {GetSteamBranchLogSuffix(gameServer, server.ID)}to build {remoteVersion}");
@@ -3754,7 +3769,7 @@ namespace WindowsGSM
                         else
                         {
                             Log(server.ID, "Server: Fail to update");
-                            Log(server.ID, "[ERROR] " + gameServer.Error);
+                            Log(server.ID, "[ERROR] " + (!string.IsNullOrWhiteSpace(gameServer.Error) ? gameServer.Error : $"SteamCMD exited with code {updateExitCode}"));
                         }
 
                         //Start the server
