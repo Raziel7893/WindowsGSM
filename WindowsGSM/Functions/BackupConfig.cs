@@ -278,19 +278,30 @@ $@"// Location where backup archives will be stored
                     return fullValue;
                 }
 
-                string[] segments = fullValue.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
-                if (segments.Length < expectedTail.Length)
+                string currentRootName = Path.GetFileName(currentRoot);
+                if (string.IsNullOrWhiteSpace(currentRootName))
                 {
                     return fullValue;
                 }
 
-                int startIndex = segments.Length - expectedTail.Length;
-                for (int i = 0; i < expectedTail.Length; i++)
+                string candidateRoot = fullValue;
+                for (int i = expectedTail.Length - 1; i >= 0; i--)
                 {
-                    if (!string.Equals(segments[startIndex + i], expectedTail[i], StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(Path.GetFileName(candidateRoot), expectedTail[i], StringComparison.OrdinalIgnoreCase))
                     {
                         return fullValue;
                     }
+
+                    candidateRoot = Path.GetDirectoryName(candidateRoot);
+                    if (string.IsNullOrWhiteSpace(candidateRoot))
+                    {
+                        return fullValue;
+                    }
+                }
+
+                if (!string.Equals(Path.GetFileName(candidateRoot), currentRootName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return fullValue;
                 }
 
                 return Path.Combine(new[] { currentRoot }.Concat(expectedTail).ToArray());

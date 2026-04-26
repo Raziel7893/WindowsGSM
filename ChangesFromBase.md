@@ -8,6 +8,7 @@
   - It can be found by clicking Browse => Server Configs => BackupConfig.cfg
   - Backup archives are now written directly from the source paths into the zip file instead of copying everything to a temporary folder first
   - Backup path and save path entries can now follow the current WindowsGSM root when the app folder is copied or moved, and corrected paths are written back to BackupConfig.cfg
+  - Intentional absolute backup paths outside the WindowsGSM folder are preserved and are not rebased into the app folder.
   - Hint: Do not modify WindowsGSM.cfg manually, everything is changable via the Programm itself, the Syntax of that file is quite easy to destry and your server will disappear from wgsm if you mess it up 
 - Send Join Codes via Webhook
   - Will send the joincode text aslong as the autostart or autorestart alert is activated in the webhook settings
@@ -71,9 +72,6 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Import / export server profiles
     - Export server definitions and WindowsGSM-managed settings separately from full file backups.
     - Make migration and reproducible server setup easier across machines.
-  - First-run readiness checks
-    - Add a startup checklist for SteamCMD, Java, firewall, public IP detection, required runtimes, and permissions.
-    - Help users find common setup issues before the first failed launch.
   - Port collision detection
     - Detect overlapping game/query/RCON/admin ports across all configured servers.
     - Warn before save and offer quick navigation to the conflicting server entries.
@@ -84,6 +82,8 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Changed the main WindowsGSM target framework to `net10.0-windows`.
   - Changed the plugin development project to `net10.0-windows`.
   - Kept single-file, self-contained Windows x64 publishing support.
+  - Self-contained published releases bundle the .NET 10 runtime, so end users do not need to install .NET 10 separately.
+  - Framework-dependent builds still require the .NET 10 Desktop Runtime to be installed on the target machine.
   - Removed unnecessary/obsolete package references that were causing restore/build warnings.
   - Build now completes with 0 warnings.
 
@@ -135,6 +135,13 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - The installer downloads the latest `WindrosePlus.zip`, extracts it safely into the selected server's `serverfiles` folder, and runs `install.ps1`.
   - The installer can detect existing Windrose+ installs and offer reinstall/upgrade.
 
+- Added first-run readiness checks
+  - Added `Tools > Readiness Check`.
+  - The readiness check opens automatically once on first launch.
+  - App-wide checks cover WindowsGSM/logs/backups write access, administrator permissions, SteamCMD presence, Java detection, Windows Firewall API access, disk space, plugin load status, and public IP lookup.
+  - Selected-server checks cover server folders, server executable presence, game/query port validity, port collisions, backup location write access, and configured backup source paths.
+  - Results are shown as pass/warn/fail/info rows with a short explanation for each check.
+
 - Improved crash and runtime diagnostics
   - Added detailed crash log generation under `logs\servers\<serverId>\crash_*.log`.
   - Crash logs include server ID/name/game, PID, exit code, executable, arguments, working directory, captured console output, and recent `.log`/`.txt` files from `serverfiles`.
@@ -173,6 +180,7 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
 - Improved backup performance and portability
   - Backups now stream files directly into `System.IO.Compression.ZipArchive` instead of copying the configured source paths to a temporary folder before zipping.
   - `BackupConfig.cfg` path entries for `backuplocation`, `saveslocation`, and `fileslocation` can now be rebased to the current `WGSM_PATH` when the WindowsGSM folder is copied or moved.
+  - Backup path rebasing now only applies to paths that look like they came from a moved WindowsGSM folder, so deliberate absolute paths such as `D:\Backups\<serverId>` remain unchanged.
   - Corrected rebased backup paths are persisted back into `BackupConfig.cfg`.
   - Added `fileslocation` support so individual files can be included in backups alongside save folders.
   - `saveslocation` and `fileslocation` support multiple entries separated by either `;` or `|`, preserving old semicolon-separated configs while allowing cleaner pipe-separated plugin values.

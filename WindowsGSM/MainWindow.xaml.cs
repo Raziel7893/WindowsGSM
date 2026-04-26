@@ -16,6 +16,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,6 +69,7 @@ namespace WindowsGSM
             public const string Height = "Height";
             public const string Width = "Width";
             public const string DiscordBotAutoStart = "DiscordBotAutoStart";
+            public const string ReadinessCheckShown = "ReadinessCheckShown";
         }
 
         public class ServerMetadata
@@ -156,6 +158,22 @@ namespace WindowsGSM
         {
             public TimeSpan TotalProcessorTime { get; set; }
             public DateTime Timestamp { get; set; }
+        }
+
+        private enum ReadinessStatus
+        {
+            Pass,
+            Warning,
+            Fail,
+            Info
+        }
+
+        private sealed class ReadinessCheckResult
+        {
+            public ReadinessStatus Status { get; set; }
+            public string Scope { get; set; }
+            public string Name { get; set; }
+            public string Message { get; set; }
         }
 
         public static readonly string WGSM_VERSION = "v" + string.Concat(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
@@ -404,7 +422,10 @@ namespace WindowsGSM
                 key.SetValue(RegistryKeyName.Height, Height);
                 key.SetValue(RegistryKeyName.Width, Width);
                 key.SetValue(RegistryKeyName.DiscordBotAutoStart, "False");
+                key.SetValue(RegistryKeyName.ReadinessCheckShown, "False");
             }
+
+            bool shouldShowReadinessCheck = (key.GetValue(RegistryKeyName.ReadinessCheckShown) ?? false).ToString() != "True";
 
             MahAppSwitch_HardWareAcceleration.IsOn = (key.GetValue(RegistryKeyName.HardWareAcceleration) ?? true).ToString() == "True";
             MahAppSwitch_UIAnimation.IsOn = (key.GetValue(RegistryKeyName.UIAnimation) ?? true).ToString() == "True";
@@ -596,6 +617,19 @@ namespace WindowsGSM
             StartDashBoardRefresh();
 
             StartAutpIpUpdate();
+
+            if (shouldShowReadinessCheck)
+            {
+                key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\WindowsGSM", true);
+                key?.SetValue(RegistryKeyName.ReadinessCheckShown, "True");
+                key?.Close();
+
+                Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    await RunReadinessChecks();
+                    MahAppFlyout_ReadinessCheck.IsOpen = true;
+                }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
         }
 
         private Process GetConsoleProcess(int processId)
@@ -4343,6 +4377,435 @@ namespace WindowsGSM
         #endregion
 
         #region Menu - Tools
+        private async void Tools_ReadinessCheck_Click(object sender, RoutedEventArgs e)
+        {
+            await RunReadinessChecks();
+            MahAppFlyout_ReadinessCheck.IsOpen = true;
+        }
+
+        private async void Button_ReadinessCheck_Run_Click(object sender, RoutedEventArgs e)
+        {
+            await RunReadinessChecks();
+        }
+
+        private void Button_ReadinessCheck_Close_Click(object sender, RoutedEventArgs e)
+        {
+            MahAppFlyout_ReadinessCheck.IsOpen = false;
+        }
+
+        private async Task RunReadinessChecks()
+        {
+            stackPanel_ReadinessCheckResults.Children.Clear();
+            textBlock_ReadinessCheckSummary.Text = "Running checks...";
+
+            List<ReadinessCheckResult> results = await Task.Run(() =>
+            {
+                var checks = new List<ReadinessCheckResult>();
+                AddAppReadinessChecks(checks);
+
+                ServerTable selectedServer = null;
+                List<ServerTable> servers = null;
+                Dispatcher.Invoke(() =>
+                {
+                    selectedServer = ServerGrid.SelectedItem as ServerTable;
+                    servers = ServerGrid.Items.Cast<ServerTable>().ToList();
+                });
+                if (selectedServer != null)
+                {
+                    AddServerReadinessChecks(checks, selectedServer, servers);
+                }
+                else
+                {
+                    checks.Add(new ReadinessCheckResult
+                    {
+                        Status = ReadinessStatus.Info,
+                        Scope = "Server",
+                        Name = "Selected server",
+                        Message = "Select a server before running checks to include server-specific checks."
+                    });
+                }
+
+                return checks;
+            });
+
+            foreach (ReadinessCheckResult result in results)
+            {
+                AddReadinessCheckRow(result);
+            }
+
+            int pass = results.Count(x => x.Status == ReadinessStatus.Pass);
+            int warn = results.Count(x => x.Status == ReadinessStatus.Warning);
+            int fail = results.Count(x => x.Status == ReadinessStatus.Fail);
+            textBlock_ReadinessCheckSummary.Text = $"{pass} passed, {warn} warnings, {fail} failed";
+        }
+
+        private void AddAppReadinessChecks(List<ReadinessCheckResult> checks)
+        {
+            checks.Add(CreateWritablePathCheck("App", "WindowsGSM folder writable", WGSM_PATH));
+            checks.Add(CreateWritablePathCheck("App", "Logs folder writable", ServerPath.GetLogs()));
+            checks.Add(CreateWritablePathCheck("App", "Backups folder writable", ServerPath.Get(ServerPath.FolderName.Backups)));
+            checks.Add(CreateAdminCheck());
+            checks.Add(CreateSteamCmdCheck());
+            checks.Add(CreateJavaCheck());
+            checks.Add(CreateFirewallCheck());
+            checks.Add(CreateDiskSpaceCheck());
+            checks.Add(CreatePluginCheck());
+            checks.Add(CreatePublicIpCheck());
+        }
+
+        private void AddServerReadinessChecks(List<ReadinessCheckResult> checks, ServerTable server, List<ServerTable> servers)
+        {
+            checks.Add(CreateDirectoryExistsCheck("Server", "Server folder", ServerPath.GetServers(server.ID)));
+            checks.Add(CreateDirectoryExistsCheck("Server", "Server files folder", ServerPath.GetServersServerFiles(server.ID)));
+            checks.Add(CreateDirectoryExistsCheck("Server", "Server configs folder", ServerPath.GetServersConfigs(server.ID)));
+            checks.Add(CreateServerExecutableCheck(server));
+            checks.Add(CreatePortCheck("Server", "Server port", server.Port));
+            checks.Add(CreatePortCheck("Server", "Query port", server.QueryPort));
+            checks.Add(CreatePortCollisionCheck(server, servers));
+
+            var backupConfig = new BackupConfig(server.ID);
+            checks.Add(CreateWritablePathCheck("Backup", "Backup location writable", string.IsNullOrWhiteSpace(backupConfig.BackupLocation) ? ServerPath.GetBackups(server.ID) : backupConfig.BackupLocation));
+
+            foreach (string folder in backupConfig.SavesLocations ?? Enumerable.Empty<string>())
+            {
+                checks.Add(CreateBackupSourceCheck("Backup", "Backup folder", folder, expectedFile: false));
+            }
+
+            foreach (string file in backupConfig.FilesLocations ?? Enumerable.Empty<string>())
+            {
+                checks.Add(CreateBackupSourceCheck("Backup", "Backup file", file, expectedFile: true));
+            }
+        }
+
+        private ReadinessCheckResult CreateAdminCheck()
+        {
+            try
+            {
+                using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                {
+                    bool isAdmin = new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+                    return new ReadinessCheckResult
+                    {
+                        Status = isAdmin ? ReadinessStatus.Pass : ReadinessStatus.Warning,
+                        Scope = "App",
+                        Name = "Administrator permissions",
+                        Message = isAdmin ? "WindowsGSM is running as administrator." : "WindowsGSM is not running as administrator. Some install/firewall operations may fail."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return FailCheck("App", "Administrator permissions", ex.Message);
+            }
+        }
+
+        private ReadinessCheckResult CreateSteamCmdCheck()
+        {
+            string steamCmdPath = ServerPath.GetBin("steamcmd", "steamcmd.exe");
+            bool exists = File.Exists(steamCmdPath);
+            return new ReadinessCheckResult
+            {
+                Status = exists ? ReadinessStatus.Pass : ReadinessStatus.Warning,
+                Scope = "App",
+                Name = "SteamCMD",
+                Message = exists ? $"Found {steamCmdPath}" : "SteamCMD is not installed yet. It will be downloaded during SteamCMD server install/update."
+            };
+        }
+
+        private ReadinessCheckResult CreateJavaCheck()
+        {
+            try
+            {
+                string javaPath = JavaHelper.FindJavaExecutableAbsolutePath();
+                return new ReadinessCheckResult
+                {
+                    Status = string.IsNullOrWhiteSpace(javaPath) ? ReadinessStatus.Warning : ReadinessStatus.Pass,
+                    Scope = "App",
+                    Name = "Java runtime",
+                    Message = string.IsNullOrWhiteSpace(javaPath) ? "Java was not detected. Minecraft Java servers may need Java installed." : $"Found {javaPath}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Warning,
+                    Scope = "App",
+                    Name = "Java runtime",
+                    Message = "Java detection failed: " + ex.Message
+                };
+            }
+        }
+
+        private ReadinessCheckResult CreateFirewallCheck()
+        {
+            try
+            {
+                Type managerType = Type.GetTypeFromProgID("HNetCfg.FwMgr");
+                if (managerType == null)
+                {
+                    return FailCheck("App", "Windows Firewall API", "Firewall COM API is unavailable.");
+                }
+
+                dynamic manager = Activator.CreateInstance(managerType);
+                bool enabled = manager.LocalPolicy.CurrentProfile.FirewallEnabled;
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Pass,
+                    Scope = "App",
+                    Name = "Windows Firewall API",
+                    Message = enabled ? "Firewall API is accessible and firewall is enabled." : "Firewall API is accessible and firewall is currently disabled."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Warning,
+                    Scope = "App",
+                    Name = "Windows Firewall API",
+                    Message = "Firewall API check failed. Firewall rule changes may fail: " + ex.Message
+                };
+            }
+        }
+
+        private ReadinessCheckResult CreateDiskSpaceCheck()
+        {
+            try
+            {
+                string root = Path.GetPathRoot(WGSM_PATH);
+                DriveInfo drive = new DriveInfo(root);
+                long freeGb = drive.AvailableFreeSpace / 1024 / 1024 / 1024;
+                return new ReadinessCheckResult
+                {
+                    Status = freeGb < 5 ? ReadinessStatus.Warning : ReadinessStatus.Pass,
+                    Scope = "App",
+                    Name = "Disk space",
+                    Message = $"{freeGb} GB available on {root}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Warning,
+                    Scope = "App",
+                    Name = "Disk space",
+                    Message = "Disk space check failed: " + ex.Message
+                };
+            }
+        }
+
+        private ReadinessCheckResult CreatePluginCheck()
+        {
+            int failed = PluginsList.Count(plugin => !plugin.IsLoaded);
+            return new ReadinessCheckResult
+            {
+                Status = failed == 0 ? ReadinessStatus.Pass : ReadinessStatus.Warning,
+                Scope = "App",
+                Name = "Plugins",
+                Message = failed == 0 ? $"{PluginsList.Count} plugin(s) loaded." : $"{failed} plugin(s) failed to load. Check logs\\plugins."
+            };
+        }
+
+        private ReadinessCheckResult CreatePublicIpCheck()
+        {
+            try
+            {
+                string publicIp = WindowsGSM.Functions.Http.DownloadStringAsync("https://ipinfo.io/ip").GetAwaiter().GetResult().Trim();
+                return new ReadinessCheckResult
+                {
+                    Status = string.IsNullOrWhiteSpace(publicIp) ? ReadinessStatus.Warning : ReadinessStatus.Pass,
+                    Scope = "Network",
+                    Name = "Public IP lookup",
+                    Message = string.IsNullOrWhiteSpace(publicIp) ? "Public IP lookup returned no value." : $"Public IP lookup works: {publicIp}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Warning,
+                    Scope = "Network",
+                    Name = "Public IP lookup",
+                    Message = "Public IP lookup failed: " + ex.Message
+                };
+            }
+        }
+
+        private ReadinessCheckResult CreateServerExecutableCheck(ServerTable server)
+        {
+            try
+            {
+                dynamic gameServer = GameServer.Data.Class.Get(server.Game, new ServerConfig(server.ID), PluginsList);
+                if (gameServer == null)
+                {
+                    return FailCheck("Server", "Server executable", "Game/plugin definition could not be loaded.");
+                }
+
+                string startPath = ServerPath.GetServersServerFiles(server.ID, gameServer.StartPath);
+                return new ReadinessCheckResult
+                {
+                    Status = File.Exists(startPath) ? ReadinessStatus.Pass : ReadinessStatus.Fail,
+                    Scope = "Server",
+                    Name = "Server executable",
+                    Message = File.Exists(startPath) ? $"Found {startPath}" : $"Missing {startPath}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return FailCheck("Server", "Server executable", ex.Message);
+            }
+        }
+
+        private ReadinessCheckResult CreatePortCollisionCheck(ServerTable server, List<ServerTable> servers)
+        {
+            var collisions = (servers ?? new List<ServerTable>())
+                .Where(other => other.ID != server.ID)
+                .Where(other =>
+                    (!string.IsNullOrWhiteSpace(server.Port) && (server.Port == other.Port || server.Port == other.QueryPort)) ||
+                    (!string.IsNullOrWhiteSpace(server.QueryPort) && (server.QueryPort == other.Port || server.QueryPort == other.QueryPort)))
+                .Select(other => $"{other.ID}: {other.Name}")
+                .ToList();
+
+            return new ReadinessCheckResult
+            {
+                Status = collisions.Count == 0 ? ReadinessStatus.Pass : ReadinessStatus.Warning,
+                Scope = "Server",
+                Name = "Port collisions",
+                Message = collisions.Count == 0 ? "No game/query port collisions found." : "Possible collision with " + string.Join(", ", collisions)
+            };
+        }
+
+        private ReadinessCheckResult CreatePortCheck(string scope, string name, string value)
+        {
+            bool valid = int.TryParse(value, out int port) && port >= 1 && port <= 65535;
+            return new ReadinessCheckResult
+            {
+                Status = valid ? ReadinessStatus.Pass : ReadinessStatus.Fail,
+                Scope = scope,
+                Name = name,
+                Message = valid ? $"{value} is valid." : $"{value} is not a valid TCP/UDP port."
+            };
+        }
+
+        private ReadinessCheckResult CreateDirectoryExistsCheck(string scope, string name, string path)
+        {
+            return new ReadinessCheckResult
+            {
+                Status = Directory.Exists(path) ? ReadinessStatus.Pass : ReadinessStatus.Fail,
+                Scope = scope,
+                Name = name,
+                Message = Directory.Exists(path) ? $"Found {path}" : $"Missing {path}"
+            };
+        }
+
+        private ReadinessCheckResult CreateBackupSourceCheck(string scope, string name, string path, bool expectedFile)
+        {
+            bool exists = expectedFile ? File.Exists(path) : Directory.Exists(path);
+            return new ReadinessCheckResult
+            {
+                Status = exists ? ReadinessStatus.Pass : ReadinessStatus.Warning,
+                Scope = scope,
+                Name = name,
+                Message = exists ? $"Found {path}" : $"Missing {path}. It may be generated after the first server start."
+            };
+        }
+
+        private ReadinessCheckResult CreateWritablePathCheck(string scope, string name, string path)
+        {
+            try
+            {
+                Directory.CreateDirectory(path);
+                string probe = Path.Combine(path, $".wgsm_write_test_{Guid.NewGuid():N}.tmp");
+                File.WriteAllText(probe, "test");
+                File.Delete(probe);
+                return new ReadinessCheckResult
+                {
+                    Status = ReadinessStatus.Pass,
+                    Scope = scope,
+                    Name = name,
+                    Message = $"Writable: {path}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return FailCheck(scope, name, $"{path} is not writable: {ex.Message}");
+            }
+        }
+
+        private static ReadinessCheckResult FailCheck(string scope, string name, string message)
+        {
+            return new ReadinessCheckResult
+            {
+                Status = ReadinessStatus.Fail,
+                Scope = scope,
+                Name = name,
+                Message = message
+            };
+        }
+
+        private void AddReadinessCheckRow(ReadinessCheckResult result)
+        {
+            var border = new Border
+            {
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                BorderBrush = Brushes.LightGray,
+                Padding = new Thickness(0, 8, 0, 8)
+            };
+
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            AddReadinessCell(row, GetReadinessStatusText(result.Status), 0, GetReadinessBrush(result.Status), FontWeights.Bold);
+            AddReadinessCell(row, result.Scope, 1, Brushes.DimGray, FontWeights.Normal);
+            AddReadinessCell(row, result.Name, 2, Brushes.Black, FontWeights.SemiBold);
+            AddReadinessCell(row, result.Message, 3, Brushes.Black, FontWeights.Normal, true);
+
+            border.Child = row;
+            stackPanel_ReadinessCheckResults.Children.Add(border);
+        }
+
+        private static void AddReadinessCell(Grid row, string text, int column, Brush foreground, FontWeight weight, bool wrap = false)
+        {
+            var block = new TextBlock
+            {
+                Text = text ?? string.Empty,
+                Foreground = foreground,
+                FontWeight = weight,
+                Margin = new Thickness(0, 0, 10, 0),
+                TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap
+            };
+
+            Grid.SetColumn(block, column);
+            row.Children.Add(block);
+        }
+
+        private static string GetReadinessStatusText(ReadinessStatus status)
+        {
+            switch (status)
+            {
+                case ReadinessStatus.Pass: return "PASS";
+                case ReadinessStatus.Warning: return "WARN";
+                case ReadinessStatus.Fail: return "FAIL";
+                default: return "INFO";
+            }
+        }
+
+        private static Brush GetReadinessBrush(ReadinessStatus status)
+        {
+            switch (status)
+            {
+                case ReadinessStatus.Pass: return Brushes.ForestGreen;
+                case ReadinessStatus.Warning: return Brushes.DarkOrange;
+                case ReadinessStatus.Fail: return Brushes.Firebrick;
+                default: return Brushes.SteelBlue;
+            }
+        }
+
         private void Tools_GlobalServerListCheck_Click(object sender, RoutedEventArgs e)
         {
             var row = (ServerTable)ServerGrid.SelectedItem;

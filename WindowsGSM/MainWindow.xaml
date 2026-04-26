@@ -128,6 +128,23 @@
                <Button VerticalAlignment="Bottom" x:Name="button_RestoreBackup" Content="Restore" Click="Button_RestoreBackup_Click"/>
             </Grid>
          </mah:Flyout>
+         <mah:Flyout x:Name="MahAppFlyout_ReadinessCheck" Header="Readiness Check" Position="Right" Theme="Adapt" IsModal="True" Width="760">
+            <Grid Margin="15,0,15,15">
+               <DockPanel Margin="0,0,0,35">
+                  <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                     <TextBlock Text="Checks WindowsGSM, dependencies, and the selected server for common setup issues." TextWrapping="Wrap" Margin="0,0,0,10"/>
+                     <StackPanel Orientation="Horizontal">
+                        <Button Content="Run Checks" Width="120" Height="25" Click="Button_ReadinessCheck_Run_Click"/>
+                        <TextBlock x:Name="textBlock_ReadinessCheckSummary" Margin="15,4,0,0" TextWrapping="Wrap"/>
+                     </StackPanel>
+                  </StackPanel>
+                  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                     <StackPanel x:Name="stackPanel_ReadinessCheckResults"/>
+                  </ScrollViewer>
+               </DockPanel>
+               <Button VerticalAlignment="Bottom" Content="Close" Height="25" Click="Button_ReadinessCheck_Close_Click"/>
+            </Grid>
+         </mah:Flyout>
          <mah:Flyout x:Name="MahAppFlyout_SetAffinity" Header="Set Affinity" Position="Bottom" Theme="Dark">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                <StackPanel x:Name="StackPanel_SetAffinity" Orientation="Horizontal" VerticalAlignment="Center" Margin="20"/>
@@ -639,6 +656,7 @@
                   </MenuItem>
                </MenuItem>
                <MenuItem Header="Tools" Height="30">
+                  <MenuItem Header="Readiness Check" Click="Tools_ReadinessCheck_Click"/>
                   <MenuItem Header="Global Server List Check" Click="Tools_GlobalServerListCheck_Click"/>
                   <MenuItem Header="Install Addons">
                      <MenuItem Header="AMX Mod X + MetaMod-P" Click="Tool_InstallAMXModXMetamodP_Click">
