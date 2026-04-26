@@ -4,11 +4,16 @@ using System.Net;
 using System.IO.Compression;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System;
+using System.Diagnostics;
 
 namespace WindowsGSM.Functions
 {
     class InstallAddons
     {
+        private const string WindroseFullName = "Windrose Dedicated Server";
+        private const string WindrosePlusDownloadUrl = "https://github.com/HumanGenome/WindrosePlus/releases/latest/download/WindrosePlus.zip";
+
         public static bool? IsAMXModXAndMetaModPExists(Functions.ServerTable server)
         {
             dynamic gameServer = GameServer.Data.Class.Get(server.Game);
@@ -151,6 +156,118 @@ namespace WindowsGSM.Functions
             {
                 return null;
             }
+        }
+
+        public static bool? IsWindrosePlusExists(Functions.ServerTable server)
+        {
+            if (!IsWindroseServer(server))
+            {
+                return null;
+            }
+
+            string basePath = Functions.ServerPath.GetServersServerFiles(server.ID);
+            return Directory.Exists(Path.Combine(basePath, "windrose_plus")) ||
+                   File.Exists(Path.Combine(basePath, "StartWindrosePlusServer.bat")) ||
+                   File.Exists(Path.Combine(basePath, "R5", "Binaries", "Win64", "dwmapi.dll"));
+        }
+
+        public static async Task<bool> WindrosePlus(Functions.ServerTable server)
+        {
+            try
+            {
+                string basePath = Functions.ServerPath.GetServersServerFiles(server.ID);
+                string zipPath = Functions.ServerPath.GetServersCache(server.ID, "WindrosePlus.zip");
+
+                await WindowsGSM.Functions.Http.DownloadFileAsync(WindrosePlusDownloadUrl, zipPath);
+
+                bool extracted = await Task.Run(() =>
+                {
+                    try
+                    {
+                        ExtractZipOverwrite(zipPath, basePath);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
+                if (!extracted)
+                {
+                    return false;
+                }
+
+                await Task.Run(() => { try { File.Delete(zipPath); } catch { } });
+
+                string installScript = Path.Combine(basePath, "install.ps1");
+                if (!File.Exists(installScript))
+                {
+                    return false;
+                }
+
+                return await RunPowerShellScript(basePath, installScript);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static async Task<bool> RunPowerShellScript(string workingDirectory, string scriptPath)
+        {
+            using (var process = new Process())
+            {
+                process.StartInfo.WorkingDirectory = workingDirectory;
+                process.StartInfo.FileName = "powershell.exe";
+                process.StartInfo.Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"";
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+
+                process.Start();
+                await Task.Run(() => process.WaitForExit());
+                return process.ExitCode == 0;
+            }
+        }
+
+        private static void ExtractZipOverwrite(string zipPath, string destinationDirectory)
+        {
+            string destinationRoot = Path.GetFullPath(destinationDirectory);
+            if (!destinationRoot.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                destinationRoot += Path.DirectorySeparatorChar;
+            }
+
+            using (var file = File.OpenRead(zipPath))
+            using (var archive = new ZipArchive(file))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    string destinationPath = Path.GetFullPath(Path.Combine(destinationRoot, entry.FullName));
+                    if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(entry.Name))
+                    {
+                        Directory.CreateDirectory(destinationPath);
+                        continue;
+                    }
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+                    entry.ExtractToFile(destinationPath, true);
+                }
+            }
+        }
+
+        private static bool IsWindroseServer(Functions.ServerTable server)
+        {
+            string serverGame = server?.Game ?? string.Empty;
+            return string.Equals(serverGame, WindroseFullName, StringComparison.OrdinalIgnoreCase) ||
+                   serverGame.StartsWith(WindroseFullName + " [", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

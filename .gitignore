@@ -1,5 +1,6 @@
 .vs
 .idea
+.dotnet_home/
 packages/
 WindowsGSM/bin/
 WindowsGSM/obj/
@@ -9,3 +10,4 @@ WindowsGSM.sln.DotSettings.user
 *.csproj.user
 *.Backup.tmp
 publish/
+release/

@@ -135,7 +135,7 @@
          </mah:Flyout>
          <mah:Flyout x:Name="MahAppFlyout_EditConfig" Header="Edit WindowsGSM.cfg" Position="Right" Theme="Adapt" IsModal="True">
             <Grid Margin="15,0,15,15">
-               <DockPanel Margin="0,0,0,35">
+               <DockPanel Margin="0,0,0,35" LastChildFill="False">
                   <StackPanel DockPanel.Dock="Top">
                      <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <StackPanel>
@@ -147,11 +147,11 @@
                            <TextBox x:Name="textbox_EC_ServerGame" Height="23" Width="375" TextWrapping="Wrap" Text="" FontFamily="Consolas" VerticalAlignment="Top" IsReadOnly="True"/>
                         </StackPanel>
                      </StackPanel>
-                     <StackPanel Margin="0,0,0,10">
+                     <StackPanel x:Name="stackPanel_EC_ServerName" Margin="0,0,0,10">
                         <Label Content="Server Name"></Label>
                         <TextBox x:Name="textbox_EC_ServerName" Height="23" Width="500" TextWrapping="Wrap" Text="" FontFamily="Consolas" VerticalAlignment="Top"/>
                      </StackPanel>
-                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                     <StackPanel x:Name="stackPanel_EC_ServerNetwork" Orientation="Horizontal" Margin="0,0,0,10">
                         <StackPanel>
                            <Label Content="Server IP Address"></Label>
                            <TextBox x:Name="textbox_EC_ServerIP" Height="23" Width="120" TextWrapping="Wrap" Text="" FontFamily="Consolas" VerticalAlignment="Top"/>
@@ -166,20 +166,20 @@
                         </StackPanel>
                         <StackPanel Margin="5,0,0,0">
                            <Label Content="Server Maxplayer"></Label>
-                           <mah:NumericUpDown x:Name="numericUpDown_EC_ServerMaxplayer" Minimum="1" Maximum="100000" FontFamily="Consolas" Interval="1" Height="5" Width="120"/>
+                          <mah:NumericUpDown x:Name="numericUpDown_EC_ServerMaxplayer" Minimum="1" Maximum="100000" FontFamily="Consolas" Interval="1" Height="5" Width="120"/>
                         </StackPanel>
                      </StackPanel>
-                     <StackPanel Margin="0,0,0,10">
+                     <StackPanel x:Name="stackPanel_EC_ServerMap" Margin="0,0,0,10">
                         <Label Content="Server Start Map"></Label>
                         <TextBox x:Name="textbox_EC_ServerMap" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
                      </StackPanel>
-                     <StackPanel Margin="0,0,0,10">
+                     <StackPanel x:Name="stackPanel_EC_ServerGSLT" Margin="0,0,0,10">
                         <Label Content="Server GSLT"></Label>
                         <TextBox x:Name="textbox_EC_ServerGSLT" Height="23" Width="500" FontFamily="Consolas" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
                      </StackPanel>
                      <StackPanel x:Name="stackPanel_EC_CustomSettingsContainer" Margin="0,0,0,10" Visibility="Collapsed">
                         <Label Content="Plugin Settings"></Label>
-                        <ScrollViewer Width="500" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer x:Name="scrollViewer_EC_CustomSettings" Width="500" MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                            <StackPanel x:Name="stackPanel_EC_CustomSettings"/>
                         </ScrollViewer>
                      </StackPanel>
@@ -661,6 +661,7 @@
                            <Image Source="/WindowsGSM;component/Images/Tools/OxideMod.ico" Width="23" Margin="3"/>
                         </MenuItem.Icon>
                      </MenuItem>
+                     <MenuItem Header="Windrose+" Click="Tools_InstallWindrosePlus_Click"/>
                   </MenuItem>
                </MenuItem>
                <MenuItem Header="Help" Height="30">
