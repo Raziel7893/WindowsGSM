@@ -39,6 +39,9 @@ namespace WindowsGSM.Functions
             public const string RconIp = "rconip";
             public const string RconPort = "rconport";
             public const string RconPassword = "rconpassword";
+            public const string SteamBranch = "steambranch";
+            public const string SteamBranchPassword = "steambeta_password";
+            public const string SteamBranchLastInstalled = "steambranch_lastinstalled";
 
             public const string RestartCrontabAlert = "restartcrontabalert";
             public const string CrashAlert = "crashalert";
@@ -82,6 +85,9 @@ namespace WindowsGSM.Functions
         public string RconPort;
         public string RconIp;
         public string RconPassword;
+        public string SteamBranch;
+        public string SteamBranchPassword;
+        public string SteamBranchLastInstalled;
         public System.Collections.Generic.Dictionary<string, string> CustomSettings = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public ServerConfig(string serverid)
@@ -164,6 +170,9 @@ namespace WindowsGSM.Functions
                             case SettingName.RconIp: RconIp = keyvalue[1]; break;
                             case SettingName.RconPort: RconPort = keyvalue[1]; break;
                             case SettingName.RconPassword: RconPassword = keyvalue[1]; break;
+                            case SettingName.SteamBranch: SteamBranch = keyvalue[1]; break;
+                            case SettingName.SteamBranchPassword: SteamBranchPassword = keyvalue[1]; break;
+                            case SettingName.SteamBranchLastInstalled: SteamBranchLastInstalled = keyvalue[1]; break;
                             default: CustomSettings[keyvalue[0]] = keyvalue[1]; break;
                         }
                     }
@@ -215,6 +224,9 @@ namespace WindowsGSM.Functions
             RconIp = GetIPAddress();
             RconPort = "0";
             RconPassword = "";
+            SteamBranch = "";
+            SteamBranchPassword = "";
+            SteamBranchLastInstalled = "";
 
             if (usesCustomServerSettingSchema)
             {
@@ -349,6 +361,9 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.RconIp}=\"{ServerIP}\"");
                     textwriter.WriteLine($"{SettingName.RconPort}=\"0\"");
                     textwriter.WriteLine($"{SettingName.RconPassword}=\"\"");
+                    textwriter.WriteLine($"{SettingName.SteamBranch}=\"{SteamBranch}\"");
+                    textwriter.WriteLine($"{SettingName.SteamBranchPassword}=\"{SteamBranchPassword}\"");
+                    textwriter.WriteLine($"{SettingName.SteamBranchLastInstalled}=\"{SteamBranchLastInstalled}\"");
 
                     if (CustomSettings.Count > 0)
                     {

@@ -60,9 +60,6 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Plugin capability metadata
     - Let plugins declare supported capabilities such as query method, RCON support, required runtime, firewall ports, backup exclusions, and update channels.
     - Use this metadata to remove hardcoded per-game assumptions from the core app.
-  - Update channel controls
-    - Allow stable / recommended / latest / pinned-version update behavior where supported.
-    - Expose per-server update preferences for games and plugins that publish multiple channels.
   - Large-library management
     - Add search/filter/sort for servers by game, status, tags, favorite, port, or machine role.
     - Consider saved views for admins running many instances.
@@ -86,6 +83,8 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Framework-dependent builds still require the .NET 10 Desktop Runtime to be installed on the target machine.
   - Removed unnecessary/obsolete package references that were causing restore/build warnings.
   - Build now completes with 0 warnings.
+  - The main WindowsGSM log now word-wraps instead of showing a horizontal scrollbar.
+  - Double-clicking a server row opens `Edit WindowsGSM.cfg`.
 
 - Updated AppVeyor CI for .NET 10
   - Added `appveyor.yml` so AppVeyor installs the .NET 10 SDK before building.
@@ -152,6 +151,20 @@ Compared against `Raziel7893/WindowsGSM` `master` on 2026-04-22.
   - Installer output now captures stdout/stderr into the install log.
   - First-run SteamCMD `Missing configuration` failures are detected and retried once.
   - Login-token prompts remain visible in the install log.
+
+- Added Steam branch/version selection
+  - SteamCMD game installs now show a Steam Branch / Version section without requiring plugin changes.
+  - Branches can be refreshed from Steam app info where available, with manual branch entry kept as a fallback for hidden/private branches.
+  - Private branch passwords can be entered during install and are passed to SteamCMD as `-betapassword`.
+  - `WindowsGSM.cfg` now stores `steambranch`, `steambeta_password`, and `steambranch_lastinstalled`.
+  - `Edit WindowsGSM.cfg` shows Steam branch settings for SteamCMD-backed servers and allows changing the target branch later with the same editable dropdown and refresh behavior as install.
+  - SteamCMD install/update commands now automatically include configured `-beta` and `-betapassword` arguments.
+  - Steam remote build checks now read the configured branch build ID instead of always checking the public branch.
+  - Update checks force an update when the configured Steam branch differs from the last installed branch.
+  - Install failures now distinguish a SteamCMD process failure from a post-install validation failure, so successful SteamCMD exits with missing expected server files no longer show as `Exit code: 0`.
+  - Failed installs now write `InstallFailure.txt` into the server config folder with the selected game, branch, SteamCMD exit code, and validation error.
+  - The install progress bar now keeps validation failure text short and sends full details to the install log/failure report so long paths do not get clipped.
+  - Update and auto-update logs now include the configured Steam branch and build IDs so branch updates do not look like plain public-version updates.
 
 - Fixed 7 Days to Die startup/config issues
   - Removed the `-quit` launch argument from the 7 Days to Die server start command.
