@@ -11,6 +11,17 @@
 ## Changelog against Raziel7893/WindowsGSM
 https://github.com/shenniko/WindowsGSM/blob/master/ChangesFromBase.md
 
+## Documentation
+
+- [Documentation Index](docs/Documentation.md)
+- [Publishing](docs/Publishing.md)
+- [Steam Branches And Versions](docs/SteamBranches.md)
+- [Backups](docs/Backups.md)
+- [Crontab](docs/Crontab.md)
+- [Readiness Checks](docs/ReadinessChecks.md)
+- [Plugin Development](docs/PluginDevelopment.md)
+- [CustomServerSetting](docs/CustomServerSetting.md)
+
 # What is WindowsGSM?
 WindowsGSM is a powerful tool to manage game servers. Equipped with a GUI for server admins to install, import, start, stop, restart, update, and automate multiple servers with a push of a button.
 
