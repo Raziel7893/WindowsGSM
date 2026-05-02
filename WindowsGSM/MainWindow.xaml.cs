@@ -995,75 +995,83 @@ namespace WindowsGSM
 
         private async void StartDashBoardRefresh()
         {
-            var system = new SystemMetrics();
-
-            // Get CPU info and Set
-            await Task.Run(() => system.GetCPUStaticInfo());
-            dashboard_cpu_type.Content = system.CPUType;
-
-            // Get RAM info and Set
-            await Task.Run(() => system.GetRAMStaticInfo());
-            dashboard_ram_type.Content = system.RAMType;
-
-            // Get Disk info and Set
-            await Task.Run(() => system.GetDiskStaticInfo());
-            dashboard_disk_name.Content = $"({system.DiskName})";
-            dashboard_disk_type.Content = system.DiskType;
-
-            while (true)
+            try
             {
-                dashboard_cpu_bar.Value = await Task.Run(() => system.GetCPUUsage());
-                dashboard_cpu_bar.Value = (dashboard_cpu_bar.Value > 100.0) ? 100.0 : dashboard_cpu_bar.Value;
-                dashboard_cpu_usage.Content = $"{dashboard_cpu_bar.Value}%";
+                var system = new SystemMetrics();
 
-                dashboard_ram_bar.Value = await Task.Run(() => system.GetRAMUsage());
-                dashboard_ram_bar.Value = (dashboard_ram_bar.Value > 100.0) ? 100.0 : dashboard_ram_bar.Value;
-                dashboard_ram_usage.Content = $"{string.Format("{0:0.00}", dashboard_ram_bar.Value)}%";
-                dashboard_ram_ratio.Content = SystemMetrics.GetMemoryRatioString(dashboard_ram_bar.Value, system.RAMTotalSize);
+                // Get CPU info and Set
+                await Task.Run(() => system.GetCPUStaticInfo());
+                dashboard_cpu_type.Content = system.CPUType;
 
-                dashboard_disk_bar.Value = await Task.Run(() => system.GetDiskUsage());
-                dashboard_disk_bar.Value = (dashboard_disk_bar.Value > 100.0) ? 100.0 : dashboard_disk_bar.Value;
-                dashboard_disk_usage.Content = $"{string.Format("{0:0.00}", dashboard_disk_bar.Value)}%";
-                dashboard_disk_ratio.Content = SystemMetrics.GetDiskRatioString(dashboard_disk_bar.Value, system.DiskTotalSize);
+                // Get RAM info and Set
+                await Task.Run(() => system.GetRAMStaticInfo());
+                dashboard_ram_type.Content = system.RAMType;
 
-                dashboard_servers_bar.Value = ServerGrid.Items.Count * 100.0 / MAX_SERVER;
-                dashboard_servers_bar.Value = (dashboard_servers_bar.Value > 100.0) ? 100.0 : dashboard_servers_bar.Value;
-                dashboard_servers_usage.Content = $"{string.Format("{0:0.00}", dashboard_servers_bar.Value)}%";
-                dashboard_servers_ratio.Content = $"{ServerGrid.Items.Count}/{MAX_SERVER}";
+                // Get Disk info and Set
+                await Task.Run(() => system.GetDiskStaticInfo());
+                dashboard_disk_name.Content = $"({system.DiskName})";
+                dashboard_disk_type.Content = system.DiskType;
 
-                int startedCount = GetStartedServerCount();
-                dashboard_started_bar.Value = ServerGrid.Items.Count == 0 ? 0 : startedCount * 100.0 / ServerGrid.Items.Count;
-                dashboard_started_bar.Value = (dashboard_started_bar.Value > 100.0) ? 100.0 : dashboard_started_bar.Value;
-                dashboard_started_usage.Content = $"{string.Format("{0:0.00}", dashboard_started_bar.Value)}%";
-                dashboard_started_ratio.Content = $"{startedCount}/{ServerGrid.Items.Count}";
-
-                dashboard_players_count.Content = GetActivePlayers().ToString();
-
-                foreach (ServerTable server in ServerGrid.Items)
+                while (true)
                 {
-                    var serverMetadata = GetServerMetadata(server.ID);
-                    if (serverMetadata.ServerStatus == ServerStatus.Started && serverMetadata.Process != null && !serverMetadata.Process.HasExited)
+                    dashboard_cpu_bar.Value = await Task.Run(() => system.GetCPUUsage());
+                    dashboard_cpu_bar.Value = (dashboard_cpu_bar.Value > 100.0) ? 100.0 : dashboard_cpu_bar.Value;
+                    dashboard_cpu_usage.Content = $"{dashboard_cpu_bar.Value}%";
+
+                    dashboard_ram_bar.Value = await Task.Run(() => system.GetRAMUsage());
+                    dashboard_ram_bar.Value = (dashboard_ram_bar.Value > 100.0) ? 100.0 : dashboard_ram_bar.Value;
+                    dashboard_ram_usage.Content = $"{string.Format("{0:0.00}", dashboard_ram_bar.Value)}%";
+                    dashboard_ram_ratio.Content = SystemMetrics.GetMemoryRatioString(dashboard_ram_bar.Value, system.RAMTotalSize);
+
+                    dashboard_disk_bar.Value = await Task.Run(() => system.GetDiskUsage());
+                    dashboard_disk_bar.Value = (dashboard_disk_bar.Value > 100.0) ? 100.0 : dashboard_disk_bar.Value;
+                    dashboard_disk_usage.Content = $"{string.Format("{0:0.00}", dashboard_disk_bar.Value)}%";
+                    dashboard_disk_ratio.Content = SystemMetrics.GetDiskRatioString(dashboard_disk_bar.Value, system.DiskTotalSize);
+
+                    dashboard_servers_bar.Value = ServerGrid.Items.Count * 100.0 / MAX_SERVER;
+                    dashboard_servers_bar.Value = (dashboard_servers_bar.Value > 100.0) ? 100.0 : dashboard_servers_bar.Value;
+                    dashboard_servers_usage.Content = $"{string.Format("{0:0.00}", dashboard_servers_bar.Value)}%";
+                    dashboard_servers_ratio.Content = $"{ServerGrid.Items.Count}/{MAX_SERVER}";
+
+                    int startedCount = GetStartedServerCount();
+                    dashboard_started_bar.Value = ServerGrid.Items.Count == 0 ? 0 : startedCount * 100.0 / ServerGrid.Items.Count;
+                    dashboard_started_bar.Value = (dashboard_started_bar.Value > 100.0) ? 100.0 : dashboard_started_bar.Value;
+                    dashboard_started_usage.Content = $"{string.Format("{0:0.00}", dashboard_started_bar.Value)}%";
+                    dashboard_started_ratio.Content = $"{startedCount}/{ServerGrid.Items.Count}";
+
+                    dashboard_players_count.Content = GetActivePlayers().ToString();
+
+                    foreach (ServerTable server in ServerGrid.Items)
                     {
-                        try
+                        var serverMetadata = GetServerMetadata(server.ID);
+                        if (serverMetadata.ServerStatus == ServerStatus.Started && serverMetadata.Process != null && !serverMetadata.Process.HasExited)
                         {
-                            var uptime = DateTime.Now - serverMetadata.Process.StartTime;
-                            server.Uptime = $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m {uptime.Seconds}s";
+                            try
+                            {
+                                var uptime = DateTime.Now - serverMetadata.Process.StartTime;
+                                server.Uptime = $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m {uptime.Seconds}s";
+                            }
+                            catch
+                            {
+                                server.Uptime = "N/A";
+                            }
                         }
-                        catch
+                        else
                         {
-                            server.Uptime = "N/A";
+                            server.Uptime = string.Empty;
                         }
                     }
-                    else
-                    {
-                        server.Uptime = string.Empty;
-                    }
+                    ServerGrid.Items.Refresh();
+
+                    Refresh_DashBoard_LiveChart();
+
+                    await Task.Delay(1000);
                 }
-                ServerGrid.Items.Refresh();
-
-                Refresh_DashBoard_LiveChart();
-
-                await Task.Delay(1000);
+            }
+            catch (Exception e)
+            {
+                Log("0",$"Failed to gather Google Analytics data {e.Message}");
+                throw;
             }
         }
 
