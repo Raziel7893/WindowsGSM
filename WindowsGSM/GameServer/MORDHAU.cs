@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -46,7 +46,7 @@ namespace WindowsGSM.GameServer
         }
 
         public async void CreateServerCFG()
-        {    
+        {
             string configPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, @"Mordhau\Saved\Config\WindowsServer\Game.ini");
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
 
@@ -129,7 +129,7 @@ namespace WindowsGSM.GameServer
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
             }
-            
+
             return p;
         }
 

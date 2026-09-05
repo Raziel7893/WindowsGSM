@@ -4,29 +4,27 @@ using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace WindowsGSM.DiscordBot
 {
-	class Bot
-	{
-		private DiscordSocketClient _client;
-		private string _donorType;
-		private SocketTextChannel _dashboardTextChannel;
-		private RestUserMessage _dashboardMessage;
-		private CancellationTokenSource _cancellationTokenSource;
-		private readonly IServiceProvider _serviceProvider = CreateServices();
-		private Interactions _interactions;
+    class Bot
+    {
+        private DiscordSocketClient _client;
+        private string _donorType;
+        private SocketTextChannel _dashboardTextChannel;
+        private RestUserMessage _dashboardMessage;
+        private CancellationTokenSource _cancellationTokenSource;
+        private readonly IServiceProvider _serviceProvider = CreateServices();
+        private Interactions _interactions;
 
-		public Bot()
-		{
-			Configs.CreateConfigs();
-		}
+        public Bot()
+        {
+            Configs.CreateConfigs();
+        }
 
         public async Task<bool> Start()
         {
@@ -127,9 +125,9 @@ namespace WindowsGSM.DiscordBot
         }
 
         public void SetDonorType(string donorType)
-		{
-			_donorType = donorType;
-		}
+        {
+            _donorType = donorType;
+        }
 
         public async Task Stop()
         {
@@ -175,26 +173,26 @@ namespace WindowsGSM.DiscordBot
         }
 
         public string GetInviteLink()
-		{
-			return (_client == null || _client.CurrentUser == null) ? string.Empty : $"https://discordapp.com/api/oauth2/authorize?client_id={_client.CurrentUser.Id}&permissions=67497024&scope=bot%20applications.commands";
-		}
-		
-		static IServiceProvider CreateServices()
-		{
-			var config = new DiscordSocketConfig()
-			{
-				GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages |
-				                 GatewayIntents.GuildMessageReactions | GatewayIntents.GuildMessageTyping |
-				                 GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions |
-				                 GatewayIntents.DirectMessageTyping | GatewayIntents.MessageContent,
-				// Prevent snowflake date from being used in the interaction service
-				UseInteractionSnowflakeDate = false
-			};
+        {
+            return (_client == null || _client.CurrentUser == null) ? string.Empty : $"https://discordapp.com/api/oauth2/authorize?client_id={_client.CurrentUser.Id}&permissions=67497024&scope=bot%20applications.commands";
+        }
 
-			return new ServiceCollection()
-				.AddSingleton(new DiscordSocketClient(config))
-				.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
-				.BuildServiceProvider();
-		}
-	}
+        static IServiceProvider CreateServices()
+        {
+            var config = new DiscordSocketConfig()
+            {
+                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages |
+                                 GatewayIntents.GuildMessageReactions | GatewayIntents.GuildMessageTyping |
+                                 GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions |
+                                 GatewayIntents.DirectMessageTyping | GatewayIntents.MessageContent,
+                // Prevent snowflake date from being used in the interaction service
+                UseInteractionSnowflakeDate = false
+            };
+
+            return new ServiceCollection()
+                .AddSingleton(new DiscordSocketClient(config))
+                .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+                .BuildServiceProvider();
+        }
+    }
 }

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace WindowsGSM.Functions
@@ -34,7 +34,7 @@ namespace WindowsGSM.Functions
         public static async Task<JREDownloadTaskResult> DownloadJREToServer(string serverID, string version = "22")
         {
             string serverFilesPath = Functions.ServerPath.GetServersServerFiles(serverID);
-            
+
             //Download jre-8u231-windows-i586-iftw.exe from https://www.java.com/en/download/manual.jsp
             string jrePath = Path.Combine(serverFilesPath, JreInstallFileName);
             JREDownloadTaskResult result;
@@ -195,27 +195,27 @@ namespace WindowsGSM.Functions
                 return javaVersionString.GetHashCode();
             }
 
-            public static bool operator == (JavaExecutable left, JavaExecutable right)
+            public static bool operator ==(JavaExecutable left, JavaExecutable right)
             {
                 return left.javaVersionString == right.javaVersionString;
             }
 
-            public static bool operator != (JavaExecutable left, JavaExecutable right)
+            public static bool operator !=(JavaExecutable left, JavaExecutable right)
             {
                 return left.javaVersionString != right.javaVersionString;
             }
 
-            public static bool operator < (JavaExecutable left, JavaExecutable right)
+            public static bool operator <(JavaExecutable left, JavaExecutable right)
             {
                 return left.CompareTo(right) < 0;
             }
 
-            public static bool operator > (JavaExecutable left, JavaExecutable right)
+            public static bool operator >(JavaExecutable left, JavaExecutable right)
             {
                 return left.CompareTo(right) > 0;
             }
 
-            public static bool operator <= (JavaExecutable left, JavaExecutable right)
+            public static bool operator <=(JavaExecutable left, JavaExecutable right)
             {
                 return left.CompareTo(right) <= 0;
 

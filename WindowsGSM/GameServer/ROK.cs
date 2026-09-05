@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 /// <summary>
 /// ROK server has a Server.exe which is good. But redirect standard input fail

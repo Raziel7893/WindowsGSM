@@ -1,10 +1,10 @@
+using Discord;
+using Discord.Interactions;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
-using Discord.Interactions;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace WindowsGSM.DiscordBot
 {

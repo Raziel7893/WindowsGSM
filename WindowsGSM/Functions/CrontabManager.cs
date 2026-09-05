@@ -216,7 +216,7 @@ namespace WindowsGSM.Functions
                     runLoop = false; //thread will be killed soon, so stop this crontab instance
                     return;
                 case CrontabType.Exec:
-                    Window.Log(Server.ID, $"Execute Scedules: {entry.Command}");
+                    Window.Log(Server.ID, $"Execute Scedules: {entry.Command}, arguments {entry.Payload}");
                     runningBackgroundTasks.Add(ExecuteWindowsCommand(entry.Command, entry.Payload));
                     return;
                 case CrontabType.ServerConsoleCommand:
@@ -235,7 +235,7 @@ namespace WindowsGSM.Functions
                         ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconIp),
                         int.Parse(ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPort)),
                         ServerConfig.GetSetting(Server.ID, ServerConfig.SettingName.RconPassword),
-                        entry.Command); 
+                        entry.Command);
                     Window.Log(Server.ID, $"RCON response: {response}");
                     return;
             }

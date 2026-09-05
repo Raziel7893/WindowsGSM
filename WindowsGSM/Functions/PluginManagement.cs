@@ -52,7 +52,7 @@ namespace WindowsGSM.Functions
                     }
                 }
             }
-            
+
             return plugins;
         }
 

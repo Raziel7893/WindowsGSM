@@ -1070,7 +1070,7 @@ namespace WindowsGSM
             }
             catch (Exception e)
             {
-                Log("0",$"Failed to gather Google Analytics data {e.Message}");
+                Log("0", $"Failed to gather Google Analytics data {e.Message}");
                 throw;
             }
         }

@@ -113,7 +113,7 @@ namespace WindowsGSM.GameServer
             // Download vs_server_win-x64_{version}.zip from https://cdn.vintagestory.at/gamefiles/stable/
             using (WebClient webClient = new WebClient())
             {
-                try { await webClient.DownloadFileTaskAsync(address, zipPath); } 
+                try { await webClient.DownloadFileTaskAsync(address, zipPath); }
                 catch
                 {
                     Error = $"Fail to download {zipName}";

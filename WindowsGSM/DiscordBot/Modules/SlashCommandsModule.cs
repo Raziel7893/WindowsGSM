@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Discord.Interactions;
+using System;
 using System.Threading.Tasks;
-using Discord.Interactions;
 using WindowsGSM.DiscordBot.Preconditions;
 
 namespace WindowsGSM.DiscordBot.Modules

@@ -1,15 +1,15 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyModel;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
-using System;
-using ICSharpCode.SharpZipLib.Zip;
 using System.Text;
 using WindowsGSM.Functions;
-using Microsoft.Extensions.DependencyModel;
 
 public class RoslynCompiler
 {
@@ -30,7 +30,7 @@ public class RoslynCompiler
             .Select(asm => MetadataReference.CreateFromFile(asm))
             .ToList();
 
-        refs.Add(MetadataReference.CreateFromFile(typeof(RoslynCompiler).Assembly.Location)); 
+        refs.Add(MetadataReference.CreateFromFile(typeof(RoslynCompiler).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(Newtonsoft.Json.JsonConvert).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(ZipFile).Assembly.Location));
 
@@ -75,8 +75,8 @@ public class RoslynCompiler
 
 
                     _pluginMetadata.Error = sb.ToString();
-                        Console.WriteLine(_pluginMetadata.Error);
-                    
+                    Console.WriteLine(_pluginMetadata.Error);
+
                     throw exception;
                 }
             }

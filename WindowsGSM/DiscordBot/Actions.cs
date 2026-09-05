@@ -23,7 +23,7 @@ namespace WindowsGSM.DiscordBot
                 var status = string.Empty;
                 var servers = string.Empty;
 
-                foreach (var(id, state, server) in list)
+                foreach (var (id, state, server) in list)
                 {
                     ids += $"`{id}`\n";
                     status += $"`{state}`\n";
@@ -182,7 +182,7 @@ namespace WindowsGSM.DiscordBot
                 if (WindowsGSM.IsServerExist(serverId))
                 {
                     var serverStatus = WindowsGSM.GetServerStatus(serverId);
-                    if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting )
+                    if (serverStatus == MainWindow.ServerStatus.Started || serverStatus == MainWindow.ServerStatus.Starting)
                     {
                         var started = await WindowsGSM.RestartServerById(serverId, interaction.User.Id.ToString(),
                             interaction.User.Username);
@@ -219,7 +219,7 @@ namespace WindowsGSM.DiscordBot
                         await interaction.FollowupAsync(
                             $"Server {serverName}(ID: {serverId}) {(string.IsNullOrWhiteSpace(sent) ? "Command sent" : "Fail to send command")}. | `{command}`");
 
-                        if( withResponce && string.IsNullOrWhiteSpace(sent))
+                        if (withResponce && string.IsNullOrWhiteSpace(sent))
                         {
                             await interaction.FollowupAsync($"LastLog:"); //read last log (2k is the limit for dc messages
                             const int signsToSend = 1800;
@@ -333,7 +333,7 @@ namespace WindowsGSM.DiscordBot
             embed.AddField("Status", serverStatus, inline: true);
             embed.AddField("Server Name", serverName, inline: true);
 
-            await interaction.FollowupAsync(text:message, embed: embed.Build());
+            await interaction.FollowupAsync(text: message, embed: embed.Build());
         }
 
         private static string GetProgressBar(double progress)

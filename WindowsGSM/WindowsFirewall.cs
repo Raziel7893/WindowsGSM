@@ -1,6 +1,6 @@
-﻿using System;
+﻿using NetFwTypeLib;
+using System;
 using System.Threading.Tasks;
-using NetFwTypeLib;
 
 namespace WindowsGSM
 {

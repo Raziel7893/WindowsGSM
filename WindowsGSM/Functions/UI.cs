@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using MahApps.Metro.Controls.Dialogs;
+using System.Threading.Tasks;
 using System.Windows;
-using MahApps.Metro.Controls.Dialogs;
 
 namespace WindowsGSM.Functions
 {

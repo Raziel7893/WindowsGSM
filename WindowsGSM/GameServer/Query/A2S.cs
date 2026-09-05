@@ -9,7 +9,7 @@ using WindowsGSM.Functions;
 
 namespace WindowsGSM.GameServer.Query
 {
-    public class A2S: QueryTemplate
+    public class A2S : QueryTemplate
     {
         private static readonly byte[] A2S_INFO = Encoding.Default.GetBytes("TSource Engine Query\0");
         private static readonly byte[] A2S_PLAYER = Encoding.Default.GetBytes("U");

@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -106,7 +106,7 @@ namespace WindowsGSM.GameServer
                 else
                 {
                     Functions.ServerConsole.SendMessageToMainWindow(p.MainWindowHandle, "/save");
-                    
+
                     await Task.Delay(5000);
 
                     Functions.ServerConsole.SendMessageToMainWindow(p.MainWindowHandle, "/stop");

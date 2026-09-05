@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
-using System.Text.RegularExpressions;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using WindowsGSM.Functions;
 
 namespace WindowsGSM.Installer

@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using System.Windows;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace WindowsGSM.Functions
 {
@@ -159,7 +158,7 @@ namespace WindowsGSM.Functions
                 return;
             }
 
-            if (text.Contains("join code", StringComparison.InvariantCultureIgnoreCase) || text.Contains("joincode",StringComparison.InvariantCultureIgnoreCase))
+            if (text.Contains("join code", StringComparison.InvariantCultureIgnoreCase) || text.Contains("joincode", StringComparison.InvariantCultureIgnoreCase))
             {
                 JoinCodeLine = text;
                 SendWebhookAsync(text);
@@ -190,7 +189,7 @@ namespace WindowsGSM.Functions
             });
         }
 
- 
+
 
         public static void SendMessageToMainWindow(IntPtr hWnd, string message)
         {

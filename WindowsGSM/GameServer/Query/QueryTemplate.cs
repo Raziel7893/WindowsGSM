@@ -26,7 +26,7 @@ namespace WindowsGSM.GameServer.Query
             Score = score;
             TimeConnected = timeConnected;
         }
-        public override string ToString() 
+        public override string ToString()
         {
             return $"{Id}:{Name}, Score:{Score}, connected:{TimeConnected?.TotalMinutes}";
         }

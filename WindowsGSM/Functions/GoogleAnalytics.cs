@@ -74,7 +74,7 @@ namespace WindowsGSM.Functions
                 {
                     coreCount += int.Parse(item["NumberOfCores"].ToString());
                 }
-                
+
                 SendHit("CPU", cpuName, $"{cpuName} - Cores: {coreCount.ToString()}");
             });
         }

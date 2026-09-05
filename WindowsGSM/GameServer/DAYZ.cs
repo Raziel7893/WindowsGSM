@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -51,13 +51,13 @@ namespace WindowsGSM.GameServer
             string configPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, "serverDZ.cfg");
             if (await Functions.Github.DownloadGameServerConfig(configPath, FullName))
             {
-                StringBuilder configText = new StringBuilder( File.ReadAllText(configPath));
+                StringBuilder configText = new StringBuilder(File.ReadAllText(configPath));
                 configText = configText.Replace("{{hostname}}", _serverData.ServerName);
                 configText = configText.Replace("{{maxplayers}}", Maxplayers);
-                configText.AppendLine("steamProtocolMaxDataSize = 4000; //should allow for more mods as this somehow affects how many parameters can be added via commandline "); 
+                configText.AppendLine("steamProtocolMaxDataSize = 4000; //should allow for more mods as this somehow affects how many parameters can be added via commandline ");
                 configText.AppendLine("enableCfgGameplayFile = 0;");
                 configText.AppendLine("logFile = \"server_console.log\";");
-                configText.AppendLine($"steamQueryPort = {QueryPort};            // defines Steam query port,"); 
+                configText.AppendLine($"steamQueryPort = {QueryPort};            // defines Steam query port,");
                 File.WriteAllText(configPath, configText.ToString());
             }
         }

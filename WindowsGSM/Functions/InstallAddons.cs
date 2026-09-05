@@ -1,9 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using Newtonsoft.Json.Linq;
 using System.IO;
-using System.Net;
 using System.IO.Compression;
-using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.Functions
 {
@@ -152,7 +152,7 @@ namespace WindowsGSM.Functions
                 webRequest.ServicePoint.Expect100Continue = false;
                 var response = await webRequest.GetResponseAsync();
                 using (var responseReader = new StreamReader(response.GetResponseStream()))
-                return JObject.Parse(responseReader.ReadToEnd())["tag_name"].ToString();
+                    return JObject.Parse(responseReader.ReadToEnd())["tag_name"].ToString();
             }
             catch
             {

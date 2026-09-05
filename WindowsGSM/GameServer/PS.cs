@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -36,7 +36,7 @@ namespace WindowsGSM.GameServer
             string configPath = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID, @"PostScriptum\ServerConfig", "Server.cfg");
             if (await Functions.Github.DownloadGameServerConfig(configPath, _serverData.ServerGame))
             {
-                if(File.Exists(configPath))
+                if (File.Exists(configPath))
                 {
                     string configText = File.ReadAllText(configPath);
                     configText = configText.Replace("{{ServerName}}", _serverData.ServerName);

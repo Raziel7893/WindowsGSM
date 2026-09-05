@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -63,7 +63,7 @@ namespace WindowsGSM.GameServer
                     WindowStyle = ProcessWindowStyle.Minimized,
                     UseShellExecute = false
                 },
-                EnableRaisingEvents = true,  
+                EnableRaisingEvents = true,
             };
             //Change APPDATA directory
             p.StartInfo.EnvironmentVariables["USERPROFILE"] = Functions.ServerPath.GetServersServerFiles(_serverData.ServerID);
@@ -76,7 +76,7 @@ namespace WindowsGSM.GameServer
         public async Task Stop(Process p)
         {
             await Task.Run(() =>
-            {   
+            {
                 p.Kill();
             });
         }

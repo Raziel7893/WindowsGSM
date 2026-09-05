@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Discord;
+using Discord.Interactions;
+using Discord.WebSocket;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
-using WindowsGSM.DiscordBot.Preconditions;
 using System.Windows;
+using WindowsGSM.DiscordBot.Preconditions;
 
 namespace WindowsGSM.DiscordBot.Modules
 {

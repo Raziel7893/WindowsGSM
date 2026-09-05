@@ -2,14 +2,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WindowsGSM.Functions;
 using WindowsGSM.GameServer.Engine;
 
 namespace WindowsGSM.GameServer
 {
-    class EGS :SteamCMDAgent
+    class EGS : SteamCMDAgent
     {
         public const string FullName = "Empyrion - Galactic Survival Dedicated Server";
         public override string StartPath => "DedicatedServer\\EmpyrionDedicated.exe";
@@ -59,7 +58,7 @@ namespace WindowsGSM.GameServer
 
             StringBuilder sb = new StringBuilder("-batchmode -nographics ");
             sb.Append(serverData.ServerParam);
-            if(serverData.EmbedConsole)
+            if (serverData.EmbedConsole)
             {
                 sb.Append(" -logFile -");
             }

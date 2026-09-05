@@ -40,11 +40,11 @@ namespace WindowsGSM.Functions
             {
                 throw new ObjectDisposedException(nameof(UdpClient));
             }
-            else if(sendTimeout <= 0)
+            else if (sendTimeout <= 0)
             {
                 throw new ArgumentException($"{nameof(sendTimeout)} must be more than zero.");
             }
-            else if(receiveTimeout <= 0)
+            else if (receiveTimeout <= 0)
             {
                 throw new ArgumentException($"{nameof(receiveTimeout)} must be more than zero.");
             }
@@ -76,7 +76,7 @@ namespace WindowsGSM.Functions
                 return;
             }
 
-            if(disposing)
+            if (disposing)
             {
                 // if you need that
             }

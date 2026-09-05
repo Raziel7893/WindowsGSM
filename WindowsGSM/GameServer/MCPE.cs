@@ -1,9 +1,9 @@
-﻿using System.Threading.Tasks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace WindowsGSM.GameServer
 {
@@ -200,7 +200,7 @@ namespace WindowsGSM.GameServer
                 using (WebClient webClient = new WebClient())
                 {
                     await webClient.DownloadFileTaskAsync(installUrl, PMMPPath);
-                } 
+                }
             }
             catch
             {
