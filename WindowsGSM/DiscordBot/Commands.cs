@@ -26,7 +26,27 @@ namespace WindowsGSM.DiscordBot
 
             // Return if the author is not admin
             List<string> adminIds = Configs.GetBotAdminIds();
-            if (!adminIds.Contains(message.Author.Id.ToString())) { return; }
+            List<string> serverIds = new List<string>();
+
+            if (adminIds.Contains(message.Author.Id.ToString())) 
+            {
+                return; 
+            }
+            // adding the userid 0 will give everyone access to the bot 
+            else if (adminIds.Contains("0"))
+            {
+                if(message.Channel.ChannelType == ChannelType.DM || message.Channel.ChannelType == ChannelType.Group)
+                {
+                    await message.Channel.SendMessageAsync("You don't have permission to access the bot.");
+                    return; //do not apply default permissions to DM
+                }
+                serverIds = Configs.GetServerIdsByAdminId("0");
+            }
+            else
+            {
+                serverIds = Configs.GetServerIdsByAdminId(message.Author.Id.ToString());
+            }
+
 
             // Return if the message is not WindowsGSM prefix
             var prefix = Configs.GetBotPrefix();
@@ -60,7 +80,7 @@ namespace WindowsGSM.DiscordBot
                     case "stats":
                     case "players":
                     case "serverstats":
-                        List<string> serverIds = Configs.GetServerIdsByAdminId(message.Author.Id.ToString());
+                        
                         if (command == "check")
                         {
                             await message.Channel.SendMessageAsync(
