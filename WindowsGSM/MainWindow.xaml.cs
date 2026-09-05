@@ -4156,7 +4156,7 @@ namespace WindowsGSM
                 AffirmativeButtonText = "Add"
             };
 
-            string newAdminID = await this.ShowInputAsync("Add Admin ID", "Please enter the discord user ID.", settings);
+            string newAdminID = await this.ShowInputAsync("Add Admin ID", "Please enter the discord user ID. (choose 0 as id to add default permissions for everyone that can post in the Bot channel)", settings);
             if (newAdminID == null) { return; } //If pressed cancel
 
             var adminList = DiscordBot.Configs.GetBotAdminList();
