@@ -20,3 +20,4 @@
   - Add posibility to change Bot name and manually way to change the donation based avatar from wgsm to a custom one.
   - Just put an avatar.png inside configs\discordbot\avatar.png
   - Also added a switch to just stop wgsm to change the profile of the Webhook user
+  - Add UserID 0 to add default permissions for everyone that has access to the DiscordBots assigned channel.
