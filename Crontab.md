@@ -5,6 +5,8 @@ They can now be configured by adding *.csv files to the server config folder (se
 You can Add multiple lines to that csv file, and also add multiple files. WGSM will try to read all *.csv files in that folder.
 Comments can be added by 2 leading slashes "//" as first characters in that line
 
+### The restart Crontab used in the GUI is completly seperate from the CSV! 
+
 ## File Structure
 ```csv
 CrontabExpression;Type;Command;Arguments
