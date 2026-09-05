@@ -18,6 +18,13 @@ namespace WindowsGSM.DiscordBot
                 var WindowsGSM = (MainWindow)Application.Current.MainWindow;
 
                 var list = WindowsGSM.GetServerListByUserId(userId);
+                if (list == null ||list.Count == 0)
+                {
+                    if(Configs.GetBotAdminIds().Contains("0"))
+                    {
+                        list = WindowsGSM.GetServerListByUserId("0");
+                    }
+                }
 
                 var ids = string.Empty;
                 var status = string.Empty;

@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Text;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using WindowsGSM.Functions;
-using WindowsGSM.GameServer.Query;
 using WindowsGSM.GameServer.Engine;
-using System.IO;
-using System.Linq;
-using System.Net;
-
+using WindowsGSM.GameServer.Query;
 
 
 namespace WindowsGSM.Plugins
@@ -33,6 +30,7 @@ namespace WindowsGSM.Plugins
         // - Standard Constructor and properties
         public Valheim(ServerConfig serverData) : base(serverData) => base.serverData = serverData;
 
+
         // - Game server Fixed variables
         public override string StartPath => @"valheim_server.exe"; // Game server start path
         public string FullName = "Valheim Dedicated Server"; // Game server FullName
@@ -46,9 +44,25 @@ namespace WindowsGSM.Plugins
         public string QueryPort = "2457"; // Default query port
         public string Defaultmap = "Dedicated"; // Default map name
         public string Maxplayers = "10"; // Default maxplayers
-        public string Additional = "-password \"CHANGE_ME\" -savedir \"SaveGame\" -Public 1"; // Additional server start parameter
+        private string BaseServerPath => Functions.ServerPath.GetServersServerFiles(serverData.ServerID, "");
+        public string Additional => $"-password \"{RandomPassword}\" -savedir \"{BaseServerPath}\\savedir\" -crossplay -public 1"; // Additional server start parameter
 
+        //Create random password
+        static string PasswordGenerator()
+        {
+            Random res = new Random();
+            String str = "abcdefghijklmnopqrstuvwxyz0123456789";
+            int size = 8;
+            String randomstring = "";
+            for (int i = 0; i < size; i++)
+            {
+                int x = res.Next(str.Length);
+                randomstring = randomstring + str[x];
+            }
+            return randomstring;
+        }
 
+        private string RandomPassword => PasswordGenerator();
         // - Create a default cfg for the game server after installation
         public async void CreateServerCFG()
         {
@@ -68,7 +82,7 @@ namespace WindowsGSM.Plugins
 
             // Prepare start parameter
             var param = new StringBuilder();
-            param.Append("-batchmode -nographics -crossplay");
+            param.Append("-batchmode -nographics");
             param.Append(string.IsNullOrWhiteSpace(serverData.ServerPort) ? string.Empty : $" -port {serverData.ServerPort}");
             param.Append(string.IsNullOrWhiteSpace(serverData.ServerName) ? string.Empty : $" -name \"{serverData.ServerName}\"");
             param.Append(string.IsNullOrWhiteSpace(serverData.ServerMap) ? string.Empty : $" -world \"{serverData.ServerMap}\"");
@@ -91,25 +105,34 @@ namespace WindowsGSM.Plugins
             // Set up Redirect Input and Output to WindowsGSM Console if EmbedConsole is on
             if (serverData.EmbedConsole)
             {
+                p.StartInfo.CreateNoWindow = true;
                 p.StartInfo.RedirectStandardInput = true;
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
-                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                p.StartInfo.CreateNoWindow = true;
                 var serverConsole = new ServerConsole(serverData.ServerID);
                 p.OutputDataReceived += serverConsole.AddOutput;
                 p.ErrorDataReceived += serverConsole.AddOutput;
+
+                // Start Process
+                try
+                {
+                    p.Start();
+                }
+                catch (Exception e)
+                {
+                    Error = e.Message;
+                    return null; // return null if fail to start
+                }
+
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+                return p;
             }
 
             // Start Process
             try
             {
                 p.Start();
-                if (serverData.EmbedConsole)
-                {
-                    p.BeginOutputReadLine();
-                    p.BeginErrorReadLine();
-                }
                 return p;
             }
             catch (Exception e)
@@ -119,20 +142,13 @@ namespace WindowsGSM.Plugins
             }
         }
 
-
-// - Stop server function
+        // - Stop server function
         public async Task Stop(Process p)
         {
             await Task.Run(() =>
             {
-                 Functions.ServerConsole.SetMainWindow(p.MainWindowHandle);
-                 Functions.ServerConsole.SendWaitToMainWindow("^c");
+                ProcessManagement.StopProcess(p);
             });
-			
-			await Task.Delay(2000);
-			if(!p.HasExited)
-				p.Kill();
         }
-
     }
 }

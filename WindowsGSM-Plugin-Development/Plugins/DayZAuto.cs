@@ -54,11 +54,11 @@ namespace WindowsGSM.Plugins
             {
                 StringBuilder configText = new StringBuilder(File.ReadAllText(configPath));
                 configText = configText.Replace("{{hostname}}", serverData.ServerName);
-                configText = configText.Replace("{{maxplayers}}", Maxplayers);
+                configText = configText.Replace("{{maxplayers}}", serverData.ServerMaxPlayer);
                 configText.AppendLine("steamProtocolMaxDataSize = 4000;"); //should allow for more mods as this somehow affects how many parameters can be added via commandline 
                 configText.AppendLine("enableCfgGameplayFile = 0;");
                 configText.AppendLine("logFile = \"server_console.log\";");
-                configText.AppendLine($"steamQueryPort = {QueryPort};            // defines Steam query port,");
+                configText.AppendLine($"steamQueryPort = {serverData.ServerQueryPort};            // defines Steam query port,");
                 File.WriteAllText(configPath, configText.ToString());
             }
         }

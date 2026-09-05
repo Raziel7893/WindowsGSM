@@ -41,7 +41,6 @@
     <Compile Remove="Plugins\SDTD_ExperimentalBeta.cs" />
     <Compile Remove="Plugins\TABG.cs" />
     <Compile Remove="Plugins\UT2004.cs" />
-    <Compile Remove="Plugins\Valheim.cs" />
     <Compile Remove="Plugins\Wrapper.cs" />
   </ItemGroup>
   <ItemGroup>
