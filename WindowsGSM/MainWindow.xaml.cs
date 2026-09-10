@@ -762,7 +762,7 @@ namespace WindowsGSM
         {
             string[] livePlayerData = new string[MAX_SERVER + 1];
             string[] liveUptimeData = new string[MAX_SERVER + 1];
-            foreach (ServerTable item in ServerGrid.Items)
+            foreach (ServerTable item in ServerGrid.Items.Cast<ServerTable>().ToList())
             {
                 livePlayerData[int.Parse(item.ID)] = item.Maxplayers;
                 liveUptimeData[int.Parse(item.ID)] = item.Uptime;
@@ -1041,7 +1041,7 @@ namespace WindowsGSM
 
                     dashboard_players_count.Content = GetActivePlayers().ToString();
 
-                    foreach (ServerTable server in ServerGrid.Items)
+                    foreach (ServerTable server in ServerGrid.Items.Cast<ServerTable>().ToList())
                     {
                         var serverMetadata = GetServerMetadata(server.ID);
                         if (serverMetadata.ServerStatus == ServerStatus.Started && serverMetadata.Process != null && !serverMetadata.Process.HasExited)
