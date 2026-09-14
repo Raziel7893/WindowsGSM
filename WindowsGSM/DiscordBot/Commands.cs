@@ -28,9 +28,9 @@ namespace WindowsGSM.DiscordBot
             List<string> adminIds = Configs.GetBotAdminIds();
             List<string> serverIds = new List<string>();
 
-            if (adminIds.Contains(message.Author.Id.ToString())) 
+            if(adminIds.Contains(message.Author.Id.ToString()))
             {
-                return; 
+                serverIds = Configs.GetServerIdsByAdminId(message.Author.Id.ToString());
             }
             // adding the userid 0 will give everyone access to the bot 
             else if (adminIds.Contains("0"))
@@ -44,9 +44,8 @@ namespace WindowsGSM.DiscordBot
             }
             else
             {
-                serverIds = Configs.GetServerIdsByAdminId(message.Author.Id.ToString());
+                return;
             }
-
 
             // Return if the message is not WindowsGSM prefix
             var prefix = Configs.GetBotPrefix();
