@@ -284,8 +284,7 @@ namespace WindowsGSM.Functions
          */
         private void ExecuteServerConsoleCommand(string command)
         {
-            Functions.ServerConsole.SetMainWindow(Process.MainWindowHandle);
-            Functions.ServerConsole.SendWaitToMainWindow(command + "{ENTER}");
+            Functions.ServerConsole.SendToProcess(Process, command, Process.MainWindowHandle);
         }
 
         private async Task RestartServer()

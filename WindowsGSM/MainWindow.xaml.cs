@@ -90,6 +90,7 @@ namespace WindowsGSM
             public bool CrashAlert;
             public bool AutoIpUpdateAlert;
             public bool SkipUserSetup;
+            public bool SendJoinCodeAlert;
 
             // Restart Crontab Settings
             public bool RestartCrontab;
@@ -897,6 +898,7 @@ namespace WindowsGSM
             _serverMetadata[i].SkipUserSetup = serverConfig.SkipUserSetup;
             _serverMetadata[i].RestartCrontabAlert = serverConfig.RestartCrontabAlert;
             _serverMetadata[i].CrashAlert = serverConfig.CrashAlert;
+            _serverMetadata[i].SendJoinCodeAlert = serverConfig.SendJoinCodeAlert;
 
             // Restart Crontab Settings
             _serverMetadata[i].RestartCrontab = serverConfig.RestartCrontab;
@@ -1281,6 +1283,7 @@ namespace WindowsGSM
                 MahAppSwitch_AutoUpdateAlert.IsOn = GetServerMetadata(row.ID).AutoUpdateAlert;
                 MahAppSwitch_RestartCrontabAlert.IsOn = GetServerMetadata(row.ID).RestartCrontabAlert;
                 MahAppSwitch_CrashAlert.IsOn = GetServerMetadata(row.ID).CrashAlert;
+                MahAppSwitch_SendJoinCodes.IsOn = GetServerMetadata(row.ID).SendJoinCodeAlert;
             }
         }
 
@@ -4041,6 +4044,14 @@ namespace WindowsGSM
             if (server == null) { return; }
             _serverMetadata[int.Parse(server.ID)].SkipUserSetup = MahAppSwitch_SkipUserSetup.IsOn;
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.SkipUserSetup, GetServerMetadata(server.ID).SkipUserSetup ? "1" : "0");
+        }
+
+        private void Switch_SendJoinCodes_Click(object sender, RoutedEventArgs e)
+        {
+            var server = (ServerTable)ServerGrid.SelectedItem;
+            if (server == null) { return; }
+            _serverMetadata[int.Parse(server.ID)].SendJoinCodeAlert = MahAppSwitch_SendJoinCodes.IsOn;
+            ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.SendJoinCodeAlert, GetServerMetadata(server.ID).SendJoinCodeAlert ? "1" : "0");
         }
         #endregion
 

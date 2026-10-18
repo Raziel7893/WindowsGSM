@@ -41,6 +41,7 @@ namespace WindowsGSM.Functions
 
             public const string RestartCrontabAlert = "restartcrontabalert";
             public const string CrashAlert = "crashalert";
+            public const string SendJoinCodeAlert = "sendjoincodealert";
             public const string CPUPriority = "cpupriority";
             public const string CPUAffinity = "cpuaffinity";
             public const string AutoScroll = "autoscroll";
@@ -75,6 +76,7 @@ namespace WindowsGSM.Functions
         public bool CrashAlert;
         public bool AutoIpUpdate;
         public bool SkipUserSetup;
+        public bool SendJoinCodeAlert;
         public string CPUPriority;
         public string CPUAffinity;
         public bool AutoScroll;
@@ -156,6 +158,7 @@ namespace WindowsGSM.Functions
                             case SettingName.CrashAlert: CrashAlert = keyvalue[1] == "1"; break;
                             case SettingName.AutoIpUpdateAlert: AutoIpUpdate = keyvalue[1] == "1"; break;
                             case SettingName.SkipUserSetup: SkipUserSetup = keyvalue[1] == "1"; break;
+                            case SettingName.SendJoinCodeAlert: SendJoinCodeAlert = keyvalue[1] == "1"; break;
                             case SettingName.CPUPriority: CPUPriority = keyvalue[1]; break;
                             case SettingName.CPUAffinity: CPUAffinity = keyvalue[1]; break;
                             case SettingName.AutoScroll: AutoScroll = keyvalue[1] == "1"; break;
@@ -199,6 +202,7 @@ namespace WindowsGSM.Functions
             CrashAlert = true;
             AutoIpUpdate = true;
             SkipUserSetup = false;
+            SendJoinCodeAlert = true;
             CPUPriority = "2";
             CPUAffinity = string.Concat(System.Linq.Enumerable.Repeat("1", Environment.ProcessorCount));
             AutoScroll = true;
@@ -255,6 +259,7 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.CrashAlert}=\"1\"");
                     textwriter.WriteLine($"{SettingName.AutoIpUpdateAlert}=\"0\"");
                     textwriter.WriteLine($"{SettingName.SkipUserSetup}=\"0\"");
+                    textwriter.WriteLine($"{SettingName.SendJoinCodeAlert}=\"1\"");
                     textwriter.WriteLine($"{SettingName.RconIp}=\"{ServerIP}\"");
                     textwriter.WriteLine($"{SettingName.RconPort}=\"0\"");
                     textwriter.WriteLine($"{SettingName.RconPassword}=\"\"");

@@ -54,7 +54,13 @@ namespace WindowsGSM.Functions
         {
             if (!process.HasExited)
             {
-                if (process.StartInfo.RedirectStandardInput)
+                bool redirectStandardInput = false;
+                try
+                {
+                    redirectStandardInput = process.StartInfo.RedirectStandardInput;
+                }
+                catch (Exception) { }
+                if (redirectStandardInput)
                 {
                     try
                     {
@@ -180,7 +186,7 @@ namespace WindowsGSM.Functions
                 {
                     MainWindow.ServerStatus serverStatus = WindowsGSM.GetServerStatus(_serverId);
                     var server = WindowsGSM.GetServerTableById(_serverId);
-                    if (WindowsGSM.GetServerMetadata(_serverId).DiscordAlert && StartAlertsEnabled(WindowsGSM))
+                    if (WindowsGSM.GetServerMetadata(_serverId).DiscordAlert && JoinCodeAlertsEnabled(WindowsGSM))
                     {
                         var webhook = new DiscordWebhook(WindowsGSM.GetServerMetadata(_serverId).DiscordWebhook, WindowsGSM.GetServerMetadata(_serverId).DiscordMessage, WindowsGSM.g_DonorType, WindowsGSM.GetServerMetadata(_serverId).SkipUserSetup);
                         await webhook.SendPlain($"Server {_serverId}, {server.Name}:  Join Code Found: {text}");
@@ -189,7 +195,54 @@ namespace WindowsGSM.Functions
             });
         }
 
-
+        public static async void SendToProcess(Process process, string text, IntPtr mainWindow)
+        {
+            if (!process.HasExited)
+            {
+                bool redirectStandardInput = false;
+                try
+                {
+                    redirectStandardInput = process.StartInfo.RedirectStandardInput;
+                }
+                catch (Exception) { }
+                if (redirectStandardInput)
+                {
+                    try
+                    {
+                        process.StandardInput.WriteLine(text);
+                    }
+                    catch
+                    {
+                        //ignore
+                    }
+                }
+                else
+                {
+                    await Task.Run(() =>
+                    {
+                        if (!process.HasExited && process.ProcessName == "7DaysToDieServer")
+                        {
+                            SetForegroundWindow(mainWindow);
+                            var current = GetForegroundWindow();
+                            var wgsmWindow = Process.GetCurrentProcess().MainWindowHandle;
+                            if (current != wgsmWindow)
+                            {
+                                SendWaitToMainWindow("{TAB}");
+                                SendWaitToMainWindow(text);
+                                SendWaitToMainWindow("{TAB}");
+                                SendWaitToMainWindow(text);
+                                SendWaitToMainWindow("{ENTER}");
+                                SetForegroundWindow(wgsmWindow);
+                            }
+                        }
+                        else
+                        {
+                            SendMessageToMainWindow(mainWindow, text);
+                        }
+                    });
+                }
+            }
+        }
 
         public static void SendMessageToMainWindow(IntPtr hWnd, string message)
         {
@@ -249,9 +302,9 @@ namespace WindowsGSM.Functions
             return text;
         }
 
-        private bool StartAlertsEnabled(MainWindow WindowsGSM)
+        private bool JoinCodeAlertsEnabled(MainWindow WindowsGSM)
         {
-            return (WindowsGSM.GetServerMetadata(_serverId).AutoStartAlert || WindowsGSM.GetServerMetadata(_serverId).AutoRestartAlert || WindowsGSM.GetServerMetadata(_serverId).RestartCrontabAlert);
+            return (WindowsGSM.GetServerMetadata(_serverId).SendJoinCodeAlert);
         }
     }
 }
