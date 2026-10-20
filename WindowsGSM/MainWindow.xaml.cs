@@ -78,6 +78,8 @@ namespace WindowsGSM
             public bool AutoUpdate;
             public bool UpdateOnStart;
             public bool BackupOnStart;
+            public bool AutoFirewall = true;
+            public readonly SemaphoreSlim FirewallLock = new SemaphoreSlim(1, 1);
 
             // Discord Alert Settings
             public bool DiscordAlert;
@@ -886,6 +888,7 @@ namespace WindowsGSM
             _serverMetadata[i].AutoUpdate = serverConfig.AutoUpdate;
             _serverMetadata[i].UpdateOnStart = serverConfig.UpdateOnStart;
             _serverMetadata[i].BackupOnStart = serverConfig.BackupOnStart;
+            _serverMetadata[i].AutoFirewall = serverConfig.AutoFirewall;
 
             // Discord Alert Settings
             _serverMetadata[i].DiscordAlert = serverConfig.DiscordAlert;
@@ -1272,6 +1275,10 @@ namespace WindowsGSM
                 switch_autoupdate.IsOn = GetServerMetadata(row.ID).AutoUpdate;
                 switch_updateonstart.IsOn = GetServerMetadata(row.ID).UpdateOnStart;
                 switch_backuponstart.IsOn = GetServerMetadata(row.ID).BackupOnStart;
+                switch_autofirewall.IsOn = GetServerMetadata(row.ID).AutoFirewall;
+                switch_autofirewall.IsEnabled = GetServerMetadata(row.ID).FirewallLock.CurrentCount != 0
+                    && GetServerMetadata(row.ID).ServerStatus != ServerStatus.Deleting
+                    && GetServerMetadata(row.ID).ServerStatus != ServerStatus.Restoring;
                 switch_discordalert.IsOn = GetServerMetadata(row.ID).DiscordAlert;
                 button_discordtest.IsEnabled = switch_discordalert.IsOn;
 
@@ -2023,15 +2030,13 @@ namespace WindowsGSM
             await EndAllRunningProcess(server.ID);
             await Task.Delay(500);
 
-            //Add Start File to WindowsFirewall before start
-            string startPath = ServerPath.GetServersServerFiles(server.ID, gameServer.StartPath);
-            if (!string.IsNullOrWhiteSpace(gameServer.StartPath))
+            if (!await UpdateServerFirewall(server, (string)gameServer.StartPath)
+                && !GetServerMetadata(server.ID).AutoFirewall)
             {
-                WindowsFirewall firewall = new WindowsFirewall(Path.GetFileName(startPath), startPath);
-                if (!await firewall.IsRuleExist())
-                {
-                    await firewall.AddRule();
-                }
+                _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                Log(server.ID, "Server: Fail to start | Automatic firewall rule could not be removed");
+                SetServerStatus(server, "Stopped");
+                return null;
             }
 
             gameServer.AllowsEmbedConsole = GetServerMetadata(server.ID).EmbedConsole;
@@ -3954,6 +3959,84 @@ namespace WindowsGSM
             if (server == null) { return; }
             _serverMetadata[int.Parse(server.ID)].BackupOnStart = switch_backuponstart.IsOn;
             ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.BackupOnStart, GetServerMetadata(server.ID).BackupOnStart ? "1" : "0");
+        }
+
+        private async Task<bool> UpdateServerFirewall(ServerTable server, string startPath)
+        {
+            var metadata = GetServerMetadata(server.ID);
+            await metadata.FirewallLock.WaitAsync();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(startPath))
+                {
+                    return true;
+                }
+
+                string programPath = ServerPath.GetServersServerFiles(server.ID, startPath);
+                var firewall = new WindowsFirewall(Path.GetFileName(programPath), programPath);
+                if (await firewall.SetEnabled(metadata.AutoFirewall))
+                {
+                    return true;
+                }
+
+                Log(server.ID, $"[ERROR] Auto Firewall: {firewall.Error}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log(server.ID, $"[ERROR] Auto Firewall: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                metadata.FirewallLock.Release();
+            }
+        }
+
+        private async void Button_AutoFirewall_Click(object sender, RoutedEventArgs e)
+        {
+            var server = (ServerTable)ServerGrid.SelectedItem;
+            if (server == null) { return; }
+
+            var metadata = GetServerMetadata(server.ID);
+            bool enabled = switch_autofirewall.IsOn;
+            if (metadata.AutoFirewall == enabled) { return; }
+
+            try
+            {
+                ServerConfig.SetSetting(server.ID, ServerConfig.SettingName.AutoFirewall, enabled ? "1" : "0");
+            }
+            catch (Exception ex)
+            {
+                switch_autofirewall.IsOn = metadata.AutoFirewall;
+                Log(server.ID, $"[ERROR] Auto Firewall: {ex.Message}");
+                await this.ShowMessageAsync("Auto Firewall", "The setting could not be saved. Check the server configuration file permissions.");
+                return;
+            }
+
+            metadata.AutoFirewall = enabled;
+            switch_autofirewall.IsEnabled = false;
+            try
+            {
+                dynamic gameServer = GameServer.Data.Class.Get(server.Game, new ServerConfig(server.ID), PluginsList);
+                if (gameServer == null || !await UpdateServerFirewall(server, (string)gameServer.StartPath))
+                {
+                    await this.ShowMessageAsync("Auto Firewall",
+                        $"The setting was saved, but the automatic firewall rule for {server.Name} could not be {(enabled ? "enabled" : "removed")}. Run WindowsGSM as administrator and check the server log.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(server.ID, $"[ERROR] Auto Firewall: {ex.Message}");
+                await this.ShowMessageAsync("Auto Firewall", $"The setting was saved, but the firewall rule for {server.Name} could not be updated. Check the server log.");
+            }
+            finally
+            {
+                if ((ServerGrid.SelectedItem as ServerTable)?.ID == server.ID)
+                {
+                    DataGrid_RefreshElements();
+                }
+            }
         }
 
         private void Button_DiscordAlert_Click(object sender, RoutedEventArgs e)

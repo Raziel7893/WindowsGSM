@@ -8,6 +8,7 @@ namespace WindowsGSM
     {
         private readonly string Name;
         private readonly string Path;
+        public string Error { get; private set; }
 
         public WindowsFirewall(string name, string path)
         {
@@ -40,22 +41,73 @@ namespace WindowsGSM
             });
         }
 
-        public async Task<bool> AddRule()
+        public Task<bool> AddRule() => SetEnabled(true);
+
+        public async Task<bool> SetEnabled(bool enabled)
         {
             return await Task.Run(() =>
             {
+                Error = null;
                 try
                 {
                     var netFwMgr = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
-                    var app = (INetFwAuthorizedApplication)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwAuthorizedApplication"));
-                    app.Name = Name;
-                    app.ProcessImageFileName = Path;
-                    app.Enabled = true;
-                    netFwMgr.LocalPolicy.CurrentProfile.AuthorizedApplications.Add(app);
-                    return true;
+                    var applications = netFwMgr.LocalPolicy.CurrentProfile.AuthorizedApplications;
+                    bool found = false;
+
+                    foreach (INetFwAuthorizedApplication application in applications)
+                    {
+                        if (!string.Equals(application.ProcessImageFileName, Path, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        if (enabled)
+                        {
+                            if (!application.Enabled)
+                            {
+                                application.Enabled = true;
+                            }
+                        }
+                        else
+                        {
+                            applications.Remove(application.ProcessImageFileName);
+                        }
+
+                        found = true;
+                        break;
+                    }
+
+                    if (enabled && !found)
+                    {
+                        var app = (INetFwAuthorizedApplication)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwAuthorizedApplication"));
+                        app.Name = Name;
+                        app.ProcessImageFileName = Path;
+                        app.Enabled = true;
+                        applications.Add(app);
+                    }
+
+                    netFwMgr = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
+                    foreach (INetFwAuthorizedApplication application in netFwMgr.LocalPolicy.CurrentProfile.AuthorizedApplications)
+                    {
+                        if (string.Equals(application.ProcessImageFileName, Path, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (enabled && application.Enabled)
+                            {
+                                return true;
+                            }
+
+                            Error = "The automatic firewall rule could not be changed.";
+                            return false;
+                        }
+                    }
+
+                    if (!enabled) { return true; }
+                    Error = "The automatic firewall rule could not be enabled.";
+                    return false;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Error = ex.Message;
                     return false;
                 }
             });
