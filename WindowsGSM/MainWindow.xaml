@@ -685,7 +685,7 @@
             <Grid.RowDefinitions>
                <RowDefinition Height="4*"/>
                <RowDefinition Height="5"/>
-               <RowDefinition Height="4*" MinHeight="210"/>
+               <RowDefinition Height="4*" MinHeight="240"/>
             </Grid.RowDefinitions>
 
             <DataGrid x:Name="ServerGrid"
@@ -766,15 +766,18 @@
                   <Label Content="Backup on Start" HorizontalAlignment="Left" Margin="323,99,0,0" VerticalAlignment="Top"/>
                   <mah:ToggleSwitch x:Name="switch_backuponstart" OnContent="" OffContent="" Margin="422,97,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_BackupOnStart_Click" Width="44" Height="30"/>
 
+                  <Label Content="Auto Firewall" HorizontalAlignment="Left" Margin="5,155,0,0" VerticalAlignment="Top"/>
+                  <mah:ToggleSwitch x:Name="switch_autofirewall" OnContent="" OffContent="" Margin="100,153,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_AutoFirewall_Click" Width="44" Height="30" ToolTip="Automatically allow the server application through Windows Firewall. Turning this off removes its automatic application rule to configure any required ports manually."/>
+
                   <Label x:Name="label_discordalert" Content="Discord Alert" HorizontalAlignment="Left" Margin="5,70,0,0" VerticalAlignment="Top"/>
                   <mah:ToggleSwitch x:Name="switch_discordalert" Margin="99,68,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Toggled="Button_DiscordAlert_Click" Width="44" Height="30"/>
                   <Button x:Name="button_discordedit" Cursor="Hand" Content="Edit" HorizontalAlignment="Left" Margin="150,70,0,0" VerticalAlignment="Top" Width="37" Height="26" Click="Button_DiscordEdit_Click"/>
                   <Button x:Name="button_discordset" Cursor="Hand" Content="Set Message" HorizontalAlignment="Left" Margin="192,70,0,0" VerticalAlignment="Top" Width="95" Height="26" Click="Button_DiscordSetMessage_Click"/>
                   <Button x:Name="button_discordtest" Cursor="Hand" Content="Test Alert" HorizontalAlignment="Left" Margin="382,70,0,0" VerticalAlignment="Top" Width="85" Height="26" Click="Button_DiscordWebhookTest_Click" IsEnabled="False"/>
                   <Button x:Name="button_discordsettings" Content="Settings" HorizontalAlignment="Left" Margin="292,70,0,0" VerticalAlignment="Top" Width="85" Height="26" Click="Button_DiscordAlertSettings_Click"/>
-                  <Label x:Name="label_wgsmlog" Content="Log:" HorizontalAlignment="Left" Margin="24,154,0,0" VerticalAlignment="Top"/>
+                  <Label x:Name="label_wgsmlog" Content="Log:" HorizontalAlignment="Left" Margin="24,184,0,0" VerticalAlignment="Top"/>
                   <Button x:Name="button_clearwgsmlog" Cursor="Hand" Content="CLEAR" Margin="10,0,0,10" Height="18" Click="Button_ClearWGSMLog_Click" HorizontalAlignment="Left" Width="45" VerticalAlignment="Bottom"/>
-                  <TextBox x:Name="textBox_wgsmlog" Margin="10,157,10,10" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsReadOnly="True"/>
+                  <TextBox x:Name="textBox_wgsmlog" Margin="10,187,10,10" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsReadOnly="True"/>
                </Grid>
 
                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch">

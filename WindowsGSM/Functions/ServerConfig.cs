@@ -23,6 +23,7 @@ namespace WindowsGSM.Functions
             public const string AutoUpdate = "autoupdate";
             public const string UpdateOnStart = "updateonstart";
             public const string BackupOnStart = "backuponstart";
+            public const string AutoFirewall = "autofirewall";
             public const string DiscordAlert = "discordalert";
             public const string DiscordMessage = "discordmessage";
             public const string DiscordWebhook = "discordwebhook";
@@ -62,6 +63,7 @@ namespace WindowsGSM.Functions
         public bool AutoUpdate;
         public bool UpdateOnStart;
         public bool BackupOnStart;
+        public bool AutoFirewall = true;
         public bool DiscordAlert;
         public string DiscordMessage;
         public string DiscordWebhook;
@@ -144,6 +146,7 @@ namespace WindowsGSM.Functions
                             case SettingName.AutoUpdate: AutoUpdate = keyvalue[1] == "1"; break;
                             case SettingName.UpdateOnStart: UpdateOnStart = keyvalue[1] == "1"; break;
                             case SettingName.BackupOnStart: BackupOnStart = keyvalue[1] == "1"; break;
+                            case SettingName.AutoFirewall: AutoFirewall = keyvalue[1] == "1"; break;
                             case SettingName.DiscordAlert: DiscordAlert = keyvalue[1] == "1"; break;
                             case SettingName.DiscordMessage: DiscordMessage = keyvalue[1]; break;
                             case SettingName.DiscordWebhook: DiscordWebhook = keyvalue[1]; break;
@@ -190,6 +193,7 @@ namespace WindowsGSM.Functions
             AutoUpdate = false;
             UpdateOnStart = false;
             BackupOnStart = false;
+            AutoFirewall = true;
             DiscordAlert = false;
             DiscordMessage = string.Empty;
             DiscordWebhook = string.Empty;
@@ -240,6 +244,7 @@ namespace WindowsGSM.Functions
                     textwriter.WriteLine($"{SettingName.AutoUpdate}=\"0\"");
                     textwriter.WriteLine($"{SettingName.UpdateOnStart}=\"0\"");
                     textwriter.WriteLine($"{SettingName.BackupOnStart}=\"0\"");
+                    textwriter.WriteLine($"{SettingName.AutoFirewall}=\"{(AutoFirewall ? "1" : "0")}\"");
                     textwriter.WriteLine(string.Empty);
                     textwriter.WriteLine($"{SettingName.DiscordAlert}=\"0\"");
                     textwriter.WriteLine($"{SettingName.DiscordMessage}=\"{DiscordMessage}\"");
